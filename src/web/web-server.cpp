@@ -53,12 +53,27 @@ public:
     }
 };
 
-void run(uint16_t port) {
+static YAML::Node config;
+
+void parse_configs() {
+    try {
+        config = YAML::LoadFile("media-server.yaml");
+    } catch (std::exception& e) {
+        std::cout << "Load config failed; " << e.what() << std::endl;
+    }
+}
+
+int WebServer::start() {
+    /* Init oatpp Environment */
+    oatpp::base::Environment::init();
+    /* Run App */
+    auto *schedule = new Schedule;
+    schedule->start();
 
     /* Create Router for HTTP requests routing */
     // auto router = oatpp::web::server::HttpRouter::createShared();
 
-    WebComponent webComponent(port);
+    WebComponent webComponent(this->config->port);
     webComponent.staticFilesManager.getObject()->set_cache_status(false);
     auto connectionProvider = webComponent.serverConnectionProvider;//.getObject();
 
@@ -68,6 +83,9 @@ void run(uint16_t port) {
 
     auto hlsController = HlsController::createShared();
     hlsController->setServerConnectionProvider(connectionProvider);
+    hlsController->setConfig(this->config);
+    hlsController->setSchedule(schedule);
+
     router->addController(MediaController::createShared());
     router->addController(hlsController);
 
@@ -88,13 +106,7 @@ void run(uint16_t port) {
 
     /* Run server */
     server.run();
-}
 
-int WebServer::start(uint16_t port) {
-    /* Init oatpp Environment */
-    oatpp::base::Environment::init();
-    /* Run App */
-    run(port);
     /* Destroy oatpp Environment */
     oatpp::base::Environment::destroy();
     return 0;
@@ -104,8 +116,20 @@ int main(int argc, char* args[]) {
 //    auto str = "123456";
 //    printf("%s\n", Encrypt::md5(str).c_str());
 
-    auto *webServer = new WebServer;
-    webServer->start(8080);
+    parse_configs();
+
+    auto port = config["server"]["port"].as<int>();
+    auto hlsDest = config["hls"]["m3u"]["dest"].as<std::string>();
+
+    std::cout << "Port: " << port << std::endl;
+
+    auto webConfig = new WebConfig {
+        .port = port,
+        .hlsDst = hlsDest.c_str(),
+    };
+
+    auto *webServer = new WebServer(webConfig);
+    webServer->start();
 
     return 0;
 }

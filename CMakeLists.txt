@@ -18,6 +18,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(EXT_LIBRARIES pthread)
 else()
     set(CURL_DIR "D:/Application/msys64/opt/curl")
+    set(YAML-CPP_DIR "D:/Application/msys64/opt/yaml-cpp/lib/cmake/yaml-cpp")
 
     set(SDL2_DIR "D:/Application/SDL2-2.26.1/cmake")
     set(FFMpeg_PATH "D:/Application/ffmpeg/ffmpeg-gpl-shared")
@@ -36,6 +37,7 @@ else()
 endif()
 
 #find_package(CURL REQUIRED)
+find_package(YAML-CPP REQUIRED)
 
 find_package(SDL2 REQUIRED)
 find_package(oatpp REQUIRED)
@@ -92,6 +94,8 @@ MESSAGE( STATUS "CURL_INCLUDE_DIRS = ${CURL_INCLUDE_DIRS}")
 MESSAGE( STATUS "CURL_LIBRARY_DIRS = ${CURL_LIBRARY_DIRS}")
 MESSAGE( STATUS "CURL_LIBRARIES = ${CURL_LIBRARIES}")
 
+message( STATUS "YAML_CPP_DIR = ${YAML-CPP_DIR}")
+
 #if (CMAKE_SYSTEM_NAME MATCHES "MSYS")
 #    set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
 #elseif (UNIX)
@@ -125,6 +129,7 @@ set(AV_UTILS_SOURCE_FILES
 
 include_directories(SYSTEM
         ${CURL_INCLUDE_DIRS}
+        ${YAML_CPP_INCLUDE_DIR}
         ${FFMpeg_INCLUDE_DIRS}
         ${SDL2_INCLUDE_DIRS}
         ${oatpp_INCLUDE_DIRS}

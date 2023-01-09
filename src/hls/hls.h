@@ -9,6 +9,9 @@
 
 #include <vector>
 #include <string>
+#include <thread>
+#include <chrono>
+
 #include "../av_utils/av_utils.h"
 #include "../util/util.h"
 
@@ -183,6 +186,8 @@ TS_PACKET* new_pmt_packet();
 
 */
 
+#define MAX_SEGMENTS 10
+
 typedef struct M3uSegment {
     int32_t sequence;
     double_t duration;
@@ -194,46 +199,74 @@ typedef struct M3uPlaylist {
     const char* url;
     int32_t target_duration;
     int32_t sequence;
-    std::vector<M3uSegment> segments;
+    std::vector<M3uSegment*> segments;
 
+    bool completed = false;
+    std::string outdir;
     FILE *file;
 } M3uPlaylist;
 
 static const char* HLS_M3U_INDEX_FILE = "index.m3u8";
 static const char* HLS_SEG_FILE_PREFIX = "seg_";
 
+
+static bool check_extend_args(const nlohmann::json* j) {
+    if (!j) {
+        return false;
+    }
+    if (!j->contains("serverPort") || !j->contains("url")) {
+        return false;
+    }
+    try {
+        auto port = (*j)["serverPort"].get<std::string>();
+        // auto url = (*j)["url"].get<std::string>();
+        std::stoi(port);
+    } catch (std::exception& e) {
+        return false;
+    }
+    return true;
+}
+
 class HlsMuxer {
+public:
+    M3uPlaylist *playlist = nullptr;
+    bool exit = false;
 private:
     std::string outdir;
     const nlohmann::json *extends_args;
 
     std::string streamId;
-    M3uPlaylist *playlist;
 
-    bool exit;
-
-    static AVFormatContext* new_output_context(const AVOutputFormat *ofmt, const char* url, std::vector<AVStream*> streams);
+    static AVFormatContext* new_output_context(const AVOutputFormat *ofmt, const char* url, const std::vector<AVStream*>& streams);
 
 public:
     explicit HlsMuxer(const char* url, const char* outdir, const nlohmann::json* ext_args);
 
     int start();
 
+    [[maybe_unused]] static int getStreamType(const std::string& url);
+
     int new_index_file();
 
     M3uSegment* new_seg_file(int segment_index, double_t duration);
 
-    M3uSegment* get_segment(int index);
+    M3uSegment* get_segment(int index) const;
 
     static std::string new_seg_file_name(int segment_index);
 
-    int write_playlist_header();
+    int write_playlist(int type);
 
-    int write_playlist_file_entry(M3uSegment *seg);
+    std::string write_playlist_header(int sequence = 0) const;
 
-    int write_playlist_file_end();
+    static std::string write_playlist_file_entry(const M3uSegment* seg);
+
+    std::string write_playlist_file_entries(int start = 0);
+
+    static std::string write_playlist_file_end();
 
     void send_status(int action);
+
+    void seg_clear();
 
     void close();
 };

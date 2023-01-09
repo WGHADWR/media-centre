@@ -21,14 +21,15 @@ int main(int argv, char *args[]) {
 
     httpCli::global_init();
 
-    parser.parse_check(argv, args);
-    auto url = parser.get<std::string>("source");
-    auto dir = parser.get<std::string>("dir");
-    auto ext = parser.get<std::string>("ext");
+//    parser.parse_check(argv, args);
+//    auto url = parser.get<std::string>("source");
+//    auto dir = parser.get<std::string>("dir");
+//    auto ext = parser.get<std::string>("ext");
 
-    /*std::string url = "D:/Pitbull-Give-Me-Everything.mp4";
+    std::string url = "D:/Pitbull-Give-Me-Everything.mp4";
+//    std::string url = "rtsp://192.168.2.46:8554/test3";
     std::string dir = "D:/ts";
-    std::string ext = R"({"serverPort":"8080","url":"/hls/muxer/status"})";*/
+    std::string ext = R"({"serverPort":"8080","url":"/hls/muxer/status"})";
 
     std::cout << "HlsMuxer args, source: " << url;
     std::cout << ", ext: " << ext;

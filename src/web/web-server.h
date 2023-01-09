@@ -11,6 +11,11 @@
 #include "oatpp/network/Server.hpp"
 #include "oatpp/network/tcp/server/ConnectionProvider.hpp"
 
+#include "yaml-cpp/yaml.h"
+
+#include "./schedule.h"
+
+#include "./web_config.h"
 #include "web_component.h"
 #include "media_controller.h"
 #include "hls/HlsController.h"
@@ -20,10 +25,12 @@
 class WebServer {
 
 private:
-    int port;
+    const WebConfig* config;
 
 public:
-    int start(uint16_t port);
+    WebServer(const WebConfig* config): config(config) {};
+
+    int start();
 
 };
 

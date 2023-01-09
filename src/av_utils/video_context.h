@@ -33,7 +33,7 @@ static VideoContext* vc_alloc_context() {
     return videoContext;
 }
 
-static int vc_open(VideoContext *vc, const char* file) {
+static int vc_open_input(VideoContext *vc, const char* file) {
     //VideoContext *vc = (VideoContext *)malloc(sizeof(VideoContext));
     vc->file = file;
 
@@ -118,6 +118,7 @@ static int vc_free_context(VideoContext *vc) {
     avcodec_free_context(&vc->audioCodecContext);
 
     avformat_close_input(&vc->formatContext);
+    avformat_free_context(vc->formatContext);
 
     free(vc);
     return 0;

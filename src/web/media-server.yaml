@@ -1,0 +1,7 @@
+
+server:
+  port: 8080
+
+hls:
+  m3u:
+    dest: D:/ts

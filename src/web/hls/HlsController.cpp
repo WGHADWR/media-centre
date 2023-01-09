@@ -4,8 +4,27 @@
 
 #include "HlsController.h"
 
+std::string HlsController::new_hls_command(std::string& source) {
+    std::string hlsCmd = HLS_EXEC_PROGRAM;
+
+#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__)
+    hlsCmd = std::string(HLS_EXEC_PROGRAM).append(".exe");
+#endif
+
+    nlohmann::json extArgs = {
+            { "url", "/hls/muxer/status" }
+    };
+    extArgs["serverPort"] = std::to_string(this->webConfig->port);
+
+    hlsCmd.append(" -s ").append(source);
+    hlsCmd.append(" -d ").append(this->webConfig->hlsDst);
+    hlsCmd.append(" -x ").append(extArgs.dump());
+
+    return hlsCmd;
+}
+
 std::shared_ptr<HlsController::OutgoingResponse> HlsController::list() {
-    auto data = "{}";
+    auto data = this->schedule->getAllocatorsJsonStr();
     auto response = createResponse(Status::CODE_200, data);
     response->putHeader(Header::CONTENT_TYPE, HTTP_MIME_TYPE_JSON);
     return response;
@@ -22,25 +41,15 @@ std::shared_ptr<HlsController::OutgoingResponse> HlsController::open(std::shared
     auto source = url.get<std::string>();
     auto streamId = Encrypt::md5(source);
 
-    std::string hlsCmd = "hlsMedia";
+    if (this->schedule->running(streamId)) {
+        auto allocator = this->schedule->hlsProcessors[streamId];
+        this->schedule->updateLastAccessTime(streamId);
+        auto response = createResponse(Status::CODE_200, allocator->toJson().dump());
+        response->putHeader(Header::CONTENT_TYPE, HTTP_MIME_TYPE_JSON);
+        return response;
+    }
 
-#if defined(WIN32) || defined(__WIN32) || defined(__WIN32__)
-    hlsCmd = "hlsMedia.exe";
-//#elif defined(__linux__)
-#else
-#endif
-
-    nlohmann::json extArgs = {
-            { "url", "/hls/muxer/status" }
-    };
-    //std::stringstream value;
-    auto value = (char*) this->serverConnectionProvider->getProperty("port").getData();
-    std::string port = value;
-    extArgs["serverPort"] = port;
-
-    hlsCmd.append(" -u ").append(url);
-    hlsCmd.append(" -d ").append("D:/ts");
-    hlsCmd.append(" -x ").append(extArgs.dump());
+    std::string hlsCmd = this->new_hls_command(source);
     std::cout << "Start hls muxer, command: " << hlsCmd << std::endl;
     int ret = std::system(hlsCmd.c_str());
     if (ret != 0) {
@@ -48,10 +57,10 @@ std::shared_ptr<HlsController::OutgoingResponse> HlsController::open(std::shared
         return response;
     }
 
-    json result = {
-            { "id", streamId },
-    };
-    auto response = createResponse(Status::CODE_200, result.dump());
+    auto allocator = new HlsAllocator(streamId, source);
+    this->schedule->add(allocator);
+
+    auto response = createResponse(Status::CODE_200, allocator->toJson().dump());
     response->putHeader(Header::CONTENT_TYPE, HTTP_MIME_TYPE_JSON);
 
     return response;
@@ -63,6 +72,7 @@ std::shared_ptr<HlsController::OutgoingResponse> HlsController::heartbeat(std::s
         auto response = createResponse(Status::CODE_400, "Parameter id cannot be null");
         return response;
     }
+    this->schedule->updateLastAccessTime(id);
     auto response = createResponse(Status::CODE_200, "");
     response->putHeader(Header::CONTENT_TYPE, HTTP_MIME_TYPE_JSON);
     return response;

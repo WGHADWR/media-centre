@@ -5,6 +5,8 @@
 #ifndef VIDEOPLAYER_HLSCONTROLLER_H
 #define VIDEOPLAYER_HLSCONTROLLER_H
 
+#define HLS_EXEC_PROGRAM "hlsMedia"
+
 #include <string_view>
 
 #include <unistd.h>
@@ -19,12 +21,17 @@
 #include "../http.h"
 #include "../../util/util.h"
 #include "../web_utils.h"
+#include "../schedule.h"
+
+#include "../web_config.h"
 
 using namespace std::string_view_literals;
 
 class HlsController : public oatpp::web::server::api::ApiController {
 
 private:
+    const WebConfig* webConfig;
+    Schedule* schedule;
     std::shared_ptr<oatpp::network::ServerConnectionProvider> serverConnectionProvider;
 
 private:
@@ -49,6 +56,16 @@ public:
     void setServerConnectionProvider(std::shared_ptr<oatpp::network::ServerConnectionProvider>& connectionProvider) {
         this->serverConnectionProvider = connectionProvider;
     }
+
+    void setConfig(const WebConfig* _config) {
+        this->webConfig = _config;
+    }
+
+    void setSchedule(Schedule* _schedule) {
+        this->schedule = _schedule;
+    }
+
+    std::string new_hls_command(std::string& source);
 
 #include OATPP_CODEGEN_BEGIN(ApiController)"oatpp/codegen/ApiController_define.hpp"
 
