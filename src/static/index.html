@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Index</title>
+    <style>
+        .input {
+            width: 240px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <input type="text" id="url" class="input" value="rtsp://192.168.2.46:8554/test1" />
+    <button type="button" onclick="play()">Open</button>
+    <button type="button" onclick="heartbeat()">heartbeat</button>
+</div>
+<script>
+    async function play() {
+        var url = document.getElementById("url").value;
+        console.log(url);
+        const result = await fetch("/hls/open", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: url }),
+        });
+        const data = await result.json();
+        console.log(data);
+    }
+    async function heartbeat() {
+        const result = await fetch("/hls/heartbeat?id=111");
+        const data = await result.json();
+        console.log(data);
+    }
+
+</script>
+</body>
+</html>
