@@ -231,18 +231,37 @@ class HlsMuxer {
 public:
     M3uPlaylist *playlist = nullptr;
     bool exit = false;
+
+    VideoContext *videoContext = nullptr;
+
+    int64_t pts_a = 0;
+
+    uint32_t dst_video_stream_index = 0;
+    uint32_t dst_audio_stream_index = 1;
 private:
     std::string outdir;
     const nlohmann::json *extends_args;
 
     std::string streamId;
 
-    static AVFormatContext* new_output_context(const AVOutputFormat *ofmt, const char* url, const std::vector<AVStream*>& streams);
+
+    SwrContext *swrContext = nullptr;
+
+    AVFormatContext* new_output_context(const char* url, const std::vector<AVStream*>& streams);
 
 public:
     explicit HlsMuxer(const char* url, const char* outdir, const nlohmann::json* ext_args);
 
     int start();
+
+    // decode frames and push to fifo
+    int decode_audio_packet(AVPacket *pkt);
+    // write frames from fifo
+    int write_audio_packet();
+
+    void set_packet_pts_dts(AVPacket *pkt, int frame_index);
+
+    int write_convert_packet(AVFormatContext *outputFormatContext, AVPacket *pkt);
 
     [[maybe_unused]] static int getStreamType(const std::string& url);
 

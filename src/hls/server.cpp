@@ -26,8 +26,8 @@ int main(int argv, char *args[]) {
 //    auto dir = parser.get<std::string>("dir");
 //    auto ext = parser.get<std::string>("ext");
 
-    std::string url = "D:/Pitbull-Give-Me-Everything.mp4";
-//    std::string url = "rtsp://192.168.2.46:8554/test3";
+//    std::string url = "D:/Pitbull-Give-Me-Everything.mp4";
+    std::string url = "rtsp://192.168.2.46:8554/test1";
     std::string dir = "D:/ts";
     std::string ext = R"({"serverPort":"8080","url":"/hls/muxer/status"})";
 
@@ -35,7 +35,7 @@ int main(int argv, char *args[]) {
     std::cout << ", ext: " << ext;
     std::cout << ", dir: " << dir << std::endl;
 
-    nlohmann::json ext_args = parse(ext);
+    nlohmann::json ext_args = nullptr; // parse(ext);
 
     auto hlsMuxer = new HlsMuxer(url.c_str(), dir.c_str(), &ext_args);
     hlsMuxer->start();

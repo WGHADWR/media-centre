@@ -22,6 +22,8 @@
 
 #include "../util/encrypt.h"
 
+#include "./tcp_server.h"
+
 class WebServer {
 
 private:

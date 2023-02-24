@@ -35,7 +35,7 @@ static int select_sample_rate(const AVCodec *codec)
     return best_samplerate;
 }
 
-int main(int argc, char *argv[]) {
+int main2(int argc, char *argv[]) {
     char* src = "D:/1.pcm";
     char* target = "D:/test.aac";
 

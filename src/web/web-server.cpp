@@ -123,6 +123,9 @@ int main(int argc, char* args[]) {
 
     std::cout << "Port: " << port << std::endl;
 
+    auto tcpServer = new net::TcpServer(port + 1);
+    tcpServer->start();
+
     auto webConfig = new WebConfig {
         .port = port,
         .hlsDst = hlsDest.c_str(),

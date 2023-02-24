@@ -20,6 +20,8 @@ else()
     set(CURL_DIR "D:/Application/msys64/opt/curl")
     set(YAML-CPP_DIR "D:/Application/msys64/opt/yaml-cpp/lib/cmake/yaml-cpp")
 
+    set(ASIO_DIR "D:/Application/msys64/opt/asio")
+
     set(SDL2_DIR "D:/Application/SDL2-2.26.1/cmake")
     set(FFMpeg_PATH "D:/Application/ffmpeg/ffmpeg-gpl-shared")
 
@@ -41,6 +43,8 @@ find_package(YAML-CPP REQUIRED)
 
 find_package(SDL2 REQUIRED)
 find_package(oatpp REQUIRED)
+
+set(ASIO_INCLUDE_DIRS "${ASIO_DIR}/include")
 
 set(FFMpeg_LIBRARIES avcodec avformat avutil swscale swresample)
 set(FFMpeg_INCLUDE_DIRS "${FFMpeg_PATH}/include")
@@ -130,6 +134,7 @@ set(AV_UTILS_SOURCE_FILES
 include_directories(SYSTEM
         ${CURL_INCLUDE_DIRS}
         ${YAML_CPP_INCLUDE_DIR}
+        ${ASIO_INCLUDE_DIRS}
         ${FFMpeg_INCLUDE_DIRS}
         ${SDL2_INCLUDE_DIRS}
         ${oatpp_INCLUDE_DIRS}
@@ -143,3 +148,5 @@ add_subdirectory(src/rtsp)
 add_subdirectory(src/player)
 add_subdirectory(src/hls)
 add_subdirectory(src/web)
+
+add_subdirectory(src/test)

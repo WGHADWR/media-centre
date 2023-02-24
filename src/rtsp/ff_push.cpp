@@ -210,7 +210,7 @@ int main0(int argc, char *argv[])
     // av_freep(&stream_mapping);
 
     if (ret < 0 && ret != AVERROR_EOF) {
-        printf("Error occurred: %s\n", av_err2str(ret));
+        printf("Error occurred: %d\n", ret);
         return 1;
     }
 

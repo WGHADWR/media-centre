@@ -382,8 +382,8 @@ void decode_video_frames(void *data) {
             double fps_delay = 1.0 / player->videoState->fps;
             double real_delay = extra + fps_delay;
 
-            sm_log("Video pts: %lld, time: %f, aClock: %f, diff: %f, real_delay: %f, d_r: %f, duration: %lld\n",
-                    frame->pts, time, player->sync_clock->getClock(), diff, real_delay, diff + real_delay * AV_TIME_BASE, frame->duration);
+//            sm_log("Video pts: %lld, time: %f, aClock: %f, diff: %f, real_delay: %f, d_r: %f, duration: %lld\n",
+//                    frame->pts, time, player->sync_clock->getClock(), diff, real_delay, diff + real_delay * AV_TIME_BASE, frame->duration);
 
             /*if (diff + real_delay > 0) {
                 av_usleep((diff + real_delay) * AV_TIME_BASE);

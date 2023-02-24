@@ -19,19 +19,18 @@
  */
 
 /**
- * @file
- * Simple audio converter
- *
+ * @file audio transcoding to MPEG/AAC API usage example
  * @example transcode_aac.c
- * Convert an input audio file to AAC in an MP4 container using FFmpeg.
- * Formats other than MP4 are supported based on the output file extension.
+ *
+ * Convert an input audio file to AAC in an MP4 container. Formats other than
+ * MP4 are supported based on the output file extension.
  * @author Andreas Unterweger (dustsigns@gmail.com)
  */
 
 #include <stdio.h>
 
-extern "C"
-{
+extern "C" {
+
 #include "libavformat/avformat.h"
 #include "libavformat/avio.h"
 
@@ -51,6 +50,13 @@ extern "C"
 #define OUTPUT_BIT_RATE 96000
 /* The number of output channels */
 #define OUTPUT_CHANNELS 2
+
+static inline char* av_errStr(int errnum) {
+    char* buffer = static_cast<char *>(malloc(AV_ERROR_MAX_STRING_SIZE));
+    memset(buffer, 0, AV_ERROR_MAX_STRING_SIZE);
+    return av_make_error_string(buffer, AV_ERROR_MAX_STRING_SIZE, errnum);
+}
+
 
 /**
  * Open an input file and the required decoder.
@@ -72,7 +78,7 @@ static int open_input_file(const char *filename,
     if ((error = avformat_open_input(input_format_context, filename, NULL,
                                      NULL)) < 0) {
         fprintf(stderr, "Could not open input file '%s' (error '%s')\n",
-                filename, av_err2str(error));
+                filename, av_errStr(error));
         *input_format_context = NULL;
         return error;
     }
@@ -80,7 +86,7 @@ static int open_input_file(const char *filename,
     /* Get information on the input file (number of streams etc.). */
     if ((error = avformat_find_stream_info(*input_format_context, NULL)) < 0) {
         fprintf(stderr, "Could not open find stream info (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         avformat_close_input(input_format_context);
         return error;
     }
@@ -93,9 +99,8 @@ static int open_input_file(const char *filename,
         return AVERROR_EXIT;
     }*/
 
-    int a_index = av_find_best_stream((*input_format_context), AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
-
-    stream = (*input_format_context)->streams[a_index];
+    int audio_stream_index = av_find_best_stream(*input_format_context, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+    stream = (*input_format_context)->streams[audio_stream_index];
 
     /* Find a decoder for the audio stream. */
     if (!(input_codec = avcodec_find_decoder(stream->codecpar->codec_id))) {
@@ -123,7 +128,7 @@ static int open_input_file(const char *filename,
     /* Open the decoder for the audio stream to use it later. */
     if ((error = avcodec_open2(avctx, input_codec, NULL)) < 0) {
         fprintf(stderr, "Could not open input codec (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         avcodec_free_context(&avctx);
         avformat_close_input(input_format_context);
         return error;
@@ -163,7 +168,7 @@ static int open_output_file(const char *filename,
     if ((error = avio_open(&output_io_context, filename,
                            AVIO_FLAG_WRITE)) < 0) {
         fprintf(stderr, "Could not open output file '%s' (error '%s')\n",
-                filename, av_err2str(error));
+                filename, av_errStr(error));
         return error;
     }
 
@@ -228,7 +233,7 @@ static int open_output_file(const char *filename,
     /* Open the encoder for the audio stream to use it later. */
     if ((error = avcodec_open2(avctx, output_codec, NULL)) < 0) {
         fprintf(stderr, "Could not open output codec (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         goto cleanup;
     }
 
@@ -353,7 +358,7 @@ static int write_output_file_header(AVFormatContext *output_format_context)
     int error;
     if ((error = avformat_write_header(output_format_context, NULL)) < 0) {
         fprintf(stderr, "Could not write output file header (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         return error;
     }
     return 0;
@@ -394,7 +399,7 @@ static int decode_audio_frame(AVFrame *frame,
             *finished = 1;
         else {
             fprintf(stderr, "Could not read frame (error '%s')\n",
-                    av_err2str(error));
+                    av_errStr(error));
             goto cleanup;
         }
     }
@@ -403,7 +408,7 @@ static int decode_audio_frame(AVFrame *frame,
      * The input audio stream decoder is used to do this. */
     if ((error = avcodec_send_packet(input_codec_context, input_packet)) < 0) {
         fprintf(stderr, "Could not send packet for decoding (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         goto cleanup;
     }
 
@@ -421,7 +426,7 @@ static int decode_audio_frame(AVFrame *frame,
         goto cleanup;
     } else if (error < 0) {
         fprintf(stderr, "Could not decode frame (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         goto cleanup;
         /* Default case: Return decoded data. */
     } else {
@@ -470,7 +475,7 @@ static int init_converted_samples(uint8_t ***converted_input_samples,
                                   output_codec_context->sample_fmt, 0)) < 0) {
         fprintf(stderr,
                 "Could not allocate converted input samples (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         av_freep(&(*converted_input_samples)[0]);
         free(*converted_input_samples);
         return error;
@@ -501,7 +506,7 @@ static int convert_samples(const uint8_t **input_data,
                              converted_data, frame_size,
                              input_data    , frame_size)) < 0) {
         fprintf(stderr, "Could not convert input samples (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         return error;
     }
 
@@ -647,7 +652,7 @@ static int init_output_frame(AVFrame **frame,
      * sure that the audio frame can hold as many samples as specified. */
     if ((error = av_frame_get_buffer(*frame, 0)) < 0) {
         fprintf(stderr, "Could not allocate output frame samples (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         av_frame_free(frame);
         return error;
     }
@@ -694,7 +699,7 @@ static int encode_audio_frame(AVFrame *frame,
      *  encoder signals that it has nothing more to encode. */
     if (error < 0 && error != AVERROR_EOF) {
         fprintf(stderr, "Could not send packet for encoding (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         goto cleanup;
     }
 
@@ -711,7 +716,7 @@ static int encode_audio_frame(AVFrame *frame,
         goto cleanup;
     } else if (error < 0) {
         fprintf(stderr, "Could not encode frame (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         goto cleanup;
         /* Default case: Return encoded data. */
     } else {
@@ -722,7 +727,7 @@ static int encode_audio_frame(AVFrame *frame,
     if (*data_present &&
         (error = av_write_frame(output_format_context, output_packet)) < 0) {
         fprintf(stderr, "Could not write frame (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         goto cleanup;
     }
 
@@ -784,7 +789,7 @@ static int write_output_file_trailer(AVFormatContext *output_format_context)
     int error;
     if ((error = av_write_trailer(output_format_context)) < 0) {
         fprintf(stderr, "Could not write output file trailer (error '%s')\n",
-                av_err2str(error));
+                av_errStr(error));
         return error;
     }
     return 0;
@@ -803,15 +808,15 @@ int main(int argc, char **argv)
 //        exit(1);
 //    }
 
-    char input[] = "rtsp://192.168.56.119:8554/test1";
-    char target[] = "D:/test.aac";
+    char* input = "rtsp://192.168.2.46:8554/test1";
+    char* output = "D:/ts/2.aac";
 
     /* Open the input file for reading. */
     if (open_input_file(input, &input_format_context,
                         &input_codec_context))
         goto cleanup;
     /* Open the output file for writing. */
-    if (open_output_file(target, input_codec_context,
+    if (open_output_file(output, input_codec_context,
                          &output_format_context, &output_codec_context))
         goto cleanup;
     /* Initialize the resampler to be able to convert audio sample formats. */

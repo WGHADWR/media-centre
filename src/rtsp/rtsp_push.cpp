@@ -212,7 +212,7 @@ int encode_write_audio_frame(RtspPusher *pusher, AVFrame *frame) {
     ret = avcodec_receive_packet(pusher->audioCodecContext, destPkt);
     if (ret < 0) {
         av_packet_free(&destPkt);
-        sm_log("avcodec_receive_packet error, audio, %d, %s\n", ret, av_err2str(ret));
+        sm_log("avcodec_receive_packet error, audio, %d, %s\n", ret, av_errStr(ret));
         /*if (ret == AVERROR(EAGAIN)) {
             av_log(nullptr, AV_LOG_ERROR, "avcodec_receive_packet EAGAIN, %d\n", ret);
         } else if (ret == AVERROR_EOF) {
@@ -262,7 +262,7 @@ int convert_audio_packet(RtspPusher *pusher, AVPacket *pkt) {
     if (dstFrame->nb_samples) {
         ret = av_frame_get_buffer(dstFrame, 0);
         if (ret < 0) {
-            sm_log("av_frame_get_buffer error, audio, %d, %s\n", ret, av_err2str(ret));
+            sm_log("av_frame_get_buffer error, audio, %d, %s\n", ret, av_errStr(ret));
             return ret;
         }
     }
@@ -282,7 +282,7 @@ int convert_audio_packet(RtspPusher *pusher, AVPacket *pkt) {
                 // AVERROR(EAGAIN)
                 break;
             }
-            sm_log("avcodec_receive_frame error, %d, %s\n", ret, av_err2str(ret));
+            sm_log("avcodec_receive_frame error, %d, %s\n", ret, av_errStr(ret));
             break;
         }
         // destFrame->nb_samples = pusher->audioCodecPar->nb_samples;
@@ -315,7 +315,7 @@ int convert_audio_packet(RtspPusher *pusher, AVPacket *pkt) {
         ret = swr_convert(pusher->swrContext, dstFrame->data, dst_nb_samples,
                           (const uint8_t **)frame->extended_data, frame->nb_samples);
         if (ret < 0) {
-            sm_log("swr_convert error, %d, %s\n", ret, av_err2str(ret));
+            sm_log("swr_convert error, %d, %s\n", ret, av_errStr(ret));
             continue;
         }
         //dstFrame->nb_samples = ret;
@@ -332,7 +332,7 @@ int convert_audio_packet(RtspPusher *pusher, AVPacket *pkt) {
         //destFrame->pts = frame->pts; // av_gettime();
         ret = encode_write_audio_frame(pusher, dstFrame);
         if (ret < 0) {
-            sm_log("encode_write_audio_frame error, %d, %s\n", ret, av_err2str(ret));
+            sm_log("encode_write_audio_frame error, %d, %s\n", ret, av_errStr(ret));
             if (ret == AVERROR(EAGAIN)) {
                 continue;
             }
@@ -477,7 +477,7 @@ int push_thread(void *data) {
 
     ret = avformat_alloc_output_context2(&pusher->outFormatContext, nullptr, "rtsp", pusher->url);
     if (ret < 0) {
-        sm_log("avformat_alloc_output_context2 error, %d, %s\n", ret, av_err2str(ret));
+        sm_log("avformat_alloc_output_context2 error, %d, %s\n", ret, av_errStr(ret));
         return ret;
     }
     av_opt_set(pusher->outFormatContext->priv_data, "rtsp_transport", "tcp", 0);
@@ -498,7 +498,7 @@ int push_thread(void *data) {
     if (!(pusher->outFormatContext->oformat->flags & AVFMT_NOFILE)) {
         ret = avio_open(&pusher->outFormatContext->pb, pusher->url, AVIO_FLAG_WRITE);
         if (ret < 0) {
-            sm_log("avio_open output pb, %d, %s\n", ret, av_err2str(ret));
+            sm_log("avio_open output pb, %d, %s\n", ret, av_errStr(ret));
             return ret;
         }
     }
@@ -509,7 +509,7 @@ int push_thread(void *data) {
     av_dict_set(&options, "video_track_timescale", "25", 0);
     ret = avformat_write_header(pusher->outFormatContext, &options);
     if (ret != AVSTREAM_INIT_IN_WRITE_HEADER) {
-        sm_log("avformat_write_header error, %d, %s\n", ret, av_err2str(ret));
+        sm_log("avformat_write_header error, %d, %s\n", ret, av_errStr(ret));
         return ret;
     }
     sm_log("avformat_write_header success");

@@ -22,10 +22,19 @@ extern "C" {
 #include "libavutil/time.h"
 };
 
-static int create_dir(const char* path) {
+static inline char* av_errStr(int errnum) {
+    char* buffer = static_cast<char *>(malloc(AV_ERROR_MAX_STRING_SIZE));
+    memset(buffer, 0, AV_ERROR_MAX_STRING_SIZE);
+    return av_make_error_string(buffer, AV_ERROR_MAX_STRING_SIZE, errnum);
+}
+
+static int create_dir(const char* path, bool override) {
     int ret = _access(path, 0);
     if (ret != -1) {
-        return 0;
+        if (!override) {
+            return 0;
+        }
+        std::filesystem::remove_all(path);
     }
     return std::filesystem::create_directories(path);
 }
