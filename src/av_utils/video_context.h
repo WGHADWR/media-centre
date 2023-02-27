@@ -5,7 +5,9 @@
 #ifndef VIDEOPLAYER_VIDEO_CONTEXT_H
 #define VIDEOPLAYER_VIDEO_CONTEXT_H
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"
@@ -14,8 +16,11 @@ extern "C" {
 #include "libavutil/time.h"
 #include "libavutil/opt.h"
 #include "libavutil/audio_fifo.h"
+#ifdef __cplusplus
 };
+#endif
 
+#include "sm_log.h"
 #include "av_utils.h"
 
 typedef struct VideoContext {

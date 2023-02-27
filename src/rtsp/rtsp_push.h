@@ -15,7 +15,7 @@ extern "C"
 #include "libavutil/time.h"
 #include "libavutil/opt.h"
 
-//#include "SDL2/SDL.h"
+#include "SDL2/SDL.h"
 
 #include "string.h"
 #include "ctype.h"

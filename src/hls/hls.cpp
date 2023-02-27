@@ -20,7 +20,7 @@ HlsMuxer::HlsMuxer(const char* url, const char* outdir, const nlohmann::json* ex
     this->playlist = new M3uPlaylist;
     this->playlist->url = url;
     this->playlist->outdir = this->outdir;
-    this->playlist->target_duration = 5;
+    this->playlist->target_duration = this->segment_duration;
     this->playlist->sequence = 0;
 
     this->exit = false;
@@ -206,7 +206,7 @@ void HlsMuxer::close() {
 //    if (this->playlist->file) {
 //        fclose(this->playlist->file);
 //    }
-    printf("Segment count: %zu\n", this->playlist->segments.size());
+    sm_log("Segment count: ", this->playlist->segments.size());
     this->playlist->segments.clear();
     this->exit = true;
 }
@@ -232,7 +232,7 @@ void segment_file_clean_thread(const HlsMuxer* hlsMuxer) {
                 std::filesystem::remove(file);
             }
         } catch (std::exception& e) {
-            std::cout << "Clear segment files error; " << e.what() << std::endl;
+            sm_log("Clear segment files error; ", e.what());
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
@@ -243,14 +243,14 @@ void HlsMuxer::seg_clear() {
         std::thread th_clean(segment_file_clean_thread, this);
         th_clean.detach();
     } catch (std::exception& e) {
-        std::cout << "Start clean thread failed; " << e.what() << std::endl;
+        sm_log("Start clean thread failed; ", e.what());
     }
 }
 
 int encode_audio_frame(AVCodecContext *codecContext, AVFrame *frame, AVPacket *encoded) {
     int ret = avcodec_send_frame(codecContext, frame);
     if (ret != 0) {
-        printf("avcodec_send_frame failed; ret: %d, %s\n", ret, av_errStr(ret));
+//        sm_log("avcodec_send_frame failed; ret: ");
         return ret;
     }
     while (true) {
@@ -259,12 +259,13 @@ int encode_audio_frame(AVCodecContext *codecContext, AVFrame *frame, AVPacket *e
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 return 0;
             }
-            printf("avcodec_receive_packet failed; ret: %d, %s\n", ret, av_errStr(ret));
+            //sm_log("avcodec_receive_packet failed; ret: ", ret, ", ", av_errStr(ret));
             return ret;
         }
     }
     return 0;
 }
+/*
 
 int HlsMuxer::write_convert_packet(AVFormatContext *outputFormatContext, AVPacket *pkt) {
     if (this->swrContext == nullptr) {
@@ -330,6 +331,7 @@ int HlsMuxer::write_convert_packet(AVFormatContext *outputFormatContext, AVPacke
     }
     return 0;
 }
+*/
 
 int HlsMuxer::decode_audio_packet(AVPacket *pkt) {
     int ret = avcodec_send_packet(this->videoContext->inAudioCodecContext, pkt);
@@ -364,6 +366,8 @@ int HlsMuxer::decode_audio_packet(AVPacket *pkt) {
             return ret;
         }
         av_audio_fifo_write(this->videoContext->fifo, reinterpret_cast<void **>(dest->data), resample_count);
+
+
     }
 }
 
@@ -556,7 +560,7 @@ int HlsMuxer::start() {
         if (pkt->stream_index == video_stream_index) {
         } else if (pkt->stream_index == audio_stream_index) {
             double_t time_sec = (double_t)pkt->pts * av_q2d(videoContext->inAudioStream->time_base);
-            auto index = (int64_t)(time_sec / 5);
+            auto index = (int64_t)(time_sec / this->segment_duration);
             double_t duration = time_sec - seg_seconds;
             seg_duration = duration;
             //int64_t offset = time_sec % 5;
@@ -592,7 +596,7 @@ int HlsMuxer::start() {
 
         //TODO New segment file
         if (outputFmtContext == nullptr) {
-            // printf("New segment %d\n", segment_index);
+            printf("New segment %d\n", segment_index);
             M3uSegment *seg = this->get_segment(segment_index);
             if (!seg) {
                 seg = this->new_seg_file(segment_index, this->playlist->target_duration);
@@ -639,6 +643,9 @@ int HlsMuxer::start() {
             }
             ret = this->write_audio_packet();
             if (ret != 0) {
+                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                    continue;
+                }
                 av_log(nullptr, AV_LOG_ERROR, "Write audio packet failed %d\n", ret);
             }
         } else {

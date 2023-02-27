@@ -12,16 +12,10 @@
 #include <thread>
 #include <chrono>
 
-#include "../av_utils/av_utils.h"
 #include "../util/util.h"
-
 #include "../http/httpcli.h"
-
-extern "C" {
-//#include <io.h>
-//#include <direct.h>
+#include "../av_utils/av_utils.h"
 #include "../av_utils/video_context.h"
-};
 
 /*
 typedef unsigned char byte;
@@ -229,6 +223,7 @@ static bool check_extend_args(const nlohmann::json* j) {
 
 class HlsMuxer {
 public:
+    int segment_duration = 10;
     M3uPlaylist *playlist = nullptr;
     bool exit = false;
 
@@ -261,7 +256,7 @@ public:
 
     void set_packet_pts_dts(AVPacket *pkt, int frame_index);
 
-    int write_convert_packet(AVFormatContext *outputFormatContext, AVPacket *pkt);
+//    int write_convert_packet(AVFormatContext *outputFormatContext, AVPacket *pkt);
 
     [[maybe_unused]] static int getStreamType(const std::string& url);
 

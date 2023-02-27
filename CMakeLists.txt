@@ -18,6 +18,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(CURL_DIR "/opt/cpp-libs/curl")
     set(oatpp_DIR "/opt/cpp-libs/oatpp-1.3.0/lib/cmake/oatpp-1.3.0")
 
+#    set(spdlog_DIR "/opt/cpp-libs/spdlog/lib/cmake/spdlog")
     set(EXT_LIBRARIES pthread ssl crypto)
 else()
     set(CURL_DIR "D:/Application/msys64/opt/curl")
@@ -47,6 +48,8 @@ find_package(YAML-CPP REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(oatpp REQUIRED)
 
+#find_package(spdlog REQUIRED)
+
 set(ASIO_INCLUDE_DIRS "${ASIO_DIR}/include")
 
 set(FFMpeg_LIBRARIES avcodec avformat avutil swscale swresample)
@@ -57,7 +60,9 @@ set(CURL_INCLUDE_DIRS "${CURL_DIR}/include")
 set(CURL_LIBRARY_DIRS "${CURL_DIR}/lib")
 set(CURL_LIBRARIES curl)
 
-set(CMAKE_EXE_LINKER_FLAGS "-L${FFMpeg_LIBDIR} -L${oatpp_LIBRARIES_DIRS} -L${CURL_LIBRARY_DIRS} ${CMAKE_EXE_LINKER_FLAGS}")
+set(EXT_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
+
+set(CMAKE_EXE_LINKER_FLAGS "-L${FFMpeg_LIBDIR} -L${oatpp_LIBRARIES_DIRS} -L${CURL_LIBRARY_DIRS} -I${SPDLOG_INCLUDE_DIRS} ${CMAKE_EXE_LINKER_FLAGS}")
 
 #set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};${SDL2_DIR}")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wwrite-strings")
@@ -80,6 +85,7 @@ MESSAGE( STATUS "CMAKE_C_STANDARD = ${CMAKE_C_STANDARD}")
 MESSAGE( STATUS "CMAKE_CXX_STANDARD = ${CMAKE_CXX_STANDARD}")
 MESSAGE( STATUS "CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
 MESSAGE( STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+MESSAGE( STATUS "CMAKE_CURRENT_LIST_DIR = ${CMAKE_CURRENT_LIST_DIR}")
 MESSAGE( STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 MESSAGE( STATUS "CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
 
@@ -102,6 +108,8 @@ MESSAGE( STATUS "CURL_INCLUDE_DIRS = ${CURL_INCLUDE_DIRS}")
 MESSAGE( STATUS "CURL_LIBRARY_DIRS = ${CURL_LIBRARY_DIRS}")
 MESSAGE( STATUS "CURL_LIBRARIES = ${CURL_LIBRARIES}")
 
+MESSAGE( STATUS "EXT_INCLUDE_DIRS = ${EXT_INCLUDE_DIRS}")
+
 message( STATUS "YAML_CPP_DIR = ${YAML-CPP_DIR}")
 
 #if (CMAKE_SYSTEM_NAME MATCHES "MSYS")
@@ -122,18 +130,21 @@ set(UTILS_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/util/cmdline.h
 
         ${PROJECT_SOURCE_DIR}/src/util/nlohmann/json.hpp
+
+#        ${EXT_INCLUDE_DIRS}/spdlog/spdlog.h
         )
 
 set(AV_UTILS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/av_utils)
 set(AV_UTILS_SOURCE_FILES
-        ${AV_UTILS_SOURCE_DIR}/av_packet_queue.cpp
         ${AV_UTILS_SOURCE_DIR}/av_packet_queue.h
+        ${AV_UTILS_SOURCE_DIR}/av_packet_queue.cpp
         ${AV_UTILS_SOURCE_DIR}/av_utils.h
-        ${AV_UTILS_SOURCE_DIR}/sm_log.cpp
         ${AV_UTILS_SOURCE_DIR}/sm_log.h
 
         ${AV_UTILS_SOURCE_DIR}/video_context.h
         )
+
+message( STATUS "AV_UTILS_SOURCE_FILES = ${AV_UTILS_SOURCE_FILES}")
 
 include_directories(SYSTEM
         ${CURL_INCLUDE_DIRS}
@@ -142,11 +153,8 @@ include_directories(SYSTEM
         ${FFMpeg_INCLUDE_DIRS}
         ${SDL2_INCLUDE_DIRS}
         ${oatpp_INCLUDE_DIRS}
+        ${EXT_INCLUDE_DIRS}
         )
-
-#if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-#    link_directories(${FFMpeg_LIBDIR})
-#endif()
 
 add_subdirectory(src/rtsp)
 add_subdirectory(src/player)

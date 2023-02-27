@@ -36,9 +36,7 @@ int main(int argv, char *args[]) {
     dir = "./ts";
 #endif
 
-    std::cout << "HlsMuxer args, source: " << url;
-    std::cout << ", ext: " << ext;
-    std::cout << ", dir: " << dir << std::endl;
+    sm_log("HlsMuxer args, source: ", url, ", ext: ", ext, ", dir: ", dir);
 
     nlohmann::json ext_args = nullptr; // parse(ext);
 

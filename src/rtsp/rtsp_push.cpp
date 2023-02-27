@@ -722,7 +722,7 @@ void global_log_callback(void *ptr, int level, const char *fmt, va_list vl) {
     }
 }
 
-int main(int argv, char *args[]) {
+int main_test(int argv, char *args[]) {
 
     //av_log_set_callback(global_log_callback);
 
