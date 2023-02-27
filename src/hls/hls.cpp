@@ -400,10 +400,10 @@ int HlsMuxer::write_audio_packet() {
     if (ret != 0) {
         av_frame_free(&frame);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            printf("avcodec_send_frame AVERROR_EOF. ret: %d\n", ret);
-        } else {
-            printf("avcodec_send_frame failed. ret: %d\n", ret);
+            // printf("avcodec_send_frame AVERROR_EOF. ret: %d\n", ret);
+            return 0;
         }
+        printf("avcodec_send_frame failed. ret: %d\n", ret);
         return ret;
     }
 
@@ -543,7 +543,7 @@ int HlsMuxer::start() {
     int64_t seg_index = -1;
     double_t seg_seconds = 0.0;
     double_t seg_duration = this->playlist->target_duration;
-    boolean set_seg_duration = false;
+    bool set_seg_duration = false;
     int segment_index = 0;
 
     int frame_index = 0;

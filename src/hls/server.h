@@ -7,9 +7,9 @@
 
 //#define CPPHTTPLIB_OPENSSL_SUPPORT
 
+#include <iostream>
 #include <vector>
 #include "unistd.h"
-#include <ws2tcpip.h>
 
 #include "../util/util.h"
 #include "../http/httpcli.h"

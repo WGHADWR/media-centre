@@ -15,8 +15,6 @@
 
 extern "C" {
 #include <time.h>
-#include <io.h>
-#include <direct.h>
 
 #include "libavutil/avutil.h"
 #include "libavutil/time.h"
@@ -29,8 +27,8 @@ static inline char* av_errStr(int errnum) {
 }
 
 static int create_dir(const char* path, bool override) {
-    int ret = _access(path, 0);
-    if (ret != -1) {
+    auto exist = std::filesystem::exists(path);
+    if (exist) {
         if (!override) {
             return 0;
         }

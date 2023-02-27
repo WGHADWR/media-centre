@@ -26,10 +26,15 @@ int main(int argv, char *args[]) {
 //    auto dir = parser.get<std::string>("dir");
 //    auto ext = parser.get<std::string>("ext");
 
+    std::string ext = R"({"serverPort":"8080","url":"/hls/muxer/status"})";
+
 //    std::string url = "D:/Pitbull-Give-Me-Everything.mp4";
     std::string url = "rtsp://192.168.2.46:8554/test1";
     std::string dir = "D:/ts";
-    std::string ext = R"({"serverPort":"8080","url":"/hls/muxer/status"})";
+
+#ifdef linux
+    dir = "./ts";
+#endif
 
     std::cout << "HlsMuxer args, source: " << url;
     std::cout << ", ext: " << ext;

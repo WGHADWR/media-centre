@@ -10,12 +10,15 @@ set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    set(SDL2_DIR "/opt/SDL2/lib/cmake/SDL2")
-    set(FFMpeg_PATH "/opt/ffmpeg")
+    set(ASIO_DIR "/opt/cpp-libs/asio")
+    set(YAML-CPP_DIR "/opt/cpp-libs/yaml-cpp/share/cmake/yaml-cpp")
+    set(SDL2_DIR "/opt/cpp-libs/SDL2/lib/cmake/SDL2")
+    set(FFMpeg_PATH "/opt/cpp-libs/ffmpeg-gpl-shared")
 
-    set(oatpp_DIR "/opt/oatpp/lib64/cmake/oatpp-1.3.0")
+    set(CURL_DIR "/opt/cpp-libs/curl")
+    set(oatpp_DIR "/opt/cpp-libs/oatpp-1.3.0/lib/cmake/oatpp-1.3.0")
 
-    set(EXT_LIBRARIES pthread)
+    set(EXT_LIBRARIES pthread ssl crypto)
 else()
     set(CURL_DIR "D:/Application/msys64/opt/curl")
     set(YAML-CPP_DIR "D:/Application/msys64/opt/yaml-cpp/lib/cmake/yaml-cpp")
@@ -63,6 +66,7 @@ set(CMAKE_INSTALL_PREFIX build)
 
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} \
     -isystem ${FFMpeg_INCLUDE_DIRS} \
+    -L/usr/local/openssl/lib64 \
      -O0 -Wall -g2 -ggdb -lpthread \
     ")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} \

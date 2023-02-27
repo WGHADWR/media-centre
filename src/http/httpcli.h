@@ -52,7 +52,7 @@ public:
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
         // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, FALSE);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method);
 

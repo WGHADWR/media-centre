@@ -18,5 +18,4 @@ target_link_libraries(hlsMedia PRIVATE
         ${CURL_LIBRARIES}
         ${FFMpeg_LIBRARIES}
         ${EXT_LIBRARIES}
-        #        ssl crypto crypt32
         )
