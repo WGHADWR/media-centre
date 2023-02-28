@@ -42,6 +42,9 @@ typedef struct VideoContext {
 
     AVAudioFifo *fifo;
 
+    Clock *audioClk;
+    Clock *videoClk;
+
     int64_t duration;
 } VideoContext;
 
@@ -58,6 +61,8 @@ typedef struct SwrContextOpts {
 static VideoContext* vc_alloc_context() {
     VideoContext *videoContext = (VideoContext *)malloc(sizeof(VideoContext));
     memset(videoContext, 0, sizeof(VideoContext));
+
+    videoContext->audioClk = new Clock;
     return videoContext;
 }
 
@@ -197,9 +202,9 @@ static int vc_free_context(VideoContext *vc) {
         avcodec_free_context(&vc->dstAudioCodecContext);
     }
     if (vc->dstFormatContext) {
-        if (vc->dstFormatContext->pb) {
+        /*if (vc->dstFormatContext->pb) {
             avio_close(vc->dstFormatContext->pb);
-        }
+        }*/
         avformat_free_context(vc->dstFormatContext);
     }
 

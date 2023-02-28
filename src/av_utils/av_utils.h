@@ -72,12 +72,24 @@ static const char* time_utc_str(int64_t millSec) {
     return str.c_str();
 }
 
+inline std::string av_rational_str(AVRational rational) {
+    return "{ den: " + std::to_string(rational.den) + ", num: " + std::to_string(rational.num) + "}";
+}
+
 
 class Clock {
 private:
     double_t pts = 0;
     double_t pts_drift = 0;
+
+    int64_t start = 0;
 public:
+    int64_t getStart() {
+        return this->start;
+    }
+    void setStart(int64_t start) {
+        this->start = start;
+    }
     void setClock(double_t pts) {
         double_t time = av_gettime_relative() / AV_TIME_BASE;
         this->pts = pts;

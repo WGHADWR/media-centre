@@ -229,8 +229,6 @@ public:
 
     VideoContext *videoContext = nullptr;
 
-    int64_t pts_a = 0;
-
     uint32_t dst_video_stream_index = 0;
     uint32_t dst_audio_stream_index = 1;
 private:
@@ -252,7 +250,7 @@ public:
     // decode frames and push to fifo
     int decode_audio_packet(AVPacket *pkt);
     // write frames from fifo
-    int write_audio_packet();
+    int write_encode_audio_packet();
 
     void set_packet_pts_dts(AVPacket *pkt, int frame_index);
 

@@ -49,15 +49,21 @@ static void sm_print_(T first, Args ... rest) {
     sm_print_<T>(rest...);
 }*/
 
-template <typename T, typename ... Args>
-static void sm_log(T fmt, Args ... args) {
-    auto time = log_time();
-    std::cout << time << " - ";
-    // sm_print_(args...);
-
-    std::cout << std::endl;
+template <typename T, class ... Args>
+static void sm_log(T fmt, Args&& ... args) {
+//    auto time = log_time();
+//    std::cout << sizeof...(args) << std::endl;
     spdlog::info(fmt, args...);
 }
 
+template <typename T, typename ... Args>
+static void sm_error(T fmt, Args&& ... args) {
+    spdlog::error(fmt, args...);
+}
+
+template <typename T, typename ... Args>
+static void sm_warn(T fmt, Args&& ... args) {
+    spdlog::warn(fmt, args...);
+}
 
 #endif //VIDEOPLAYER_SM_LOG_H

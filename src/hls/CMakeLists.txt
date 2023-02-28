@@ -17,5 +17,5 @@ add_executable(hlsMedia
 target_link_libraries(hlsMedia PRIVATE
         ${CURL_LIBRARIES}
         ${FFMpeg_LIBRARIES}
-#        ${EXT_LIBRARIES}
+        ${EXT_LIBRARIES}
         )
