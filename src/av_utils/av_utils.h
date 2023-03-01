@@ -13,12 +13,18 @@
 #include <chrono>
 #include <iomanip>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #include <time.h>
 
 #include "libavutil/avutil.h"
 #include "libavutil/time.h"
+#ifdef __cplusplus
 };
+#endif
+
+#include <cstring>
 
 static inline char* av_errStr(int errnum) {
     char* buffer = static_cast<char *>(malloc(AV_ERROR_MAX_STRING_SIZE));

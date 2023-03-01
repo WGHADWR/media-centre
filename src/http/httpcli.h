@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <cstring>
 #include <utility>
 
 #include "curl/curl.h"

@@ -5,9 +5,9 @@
 #include "hls.h"
 
 
-HlsMuxer::HlsMuxer(const char* url, const char* outdir, const nlohmann::json* ext_args) {
+HlsMuxer::HlsMuxer(const char* url, const char* outdir, const std::map<std::string, std::string>*  ext_args) {
     std::string source = url;
-    auto id = Encrypt::md5(source);
+    auto id = md5(source);
     std::string dir = outdir;
     dir.append("/").append(id);
     this->outdir = dir;
@@ -81,7 +81,7 @@ std::string HlsMuxer::new_seg_file_name(int segment_index) {
 }
 
 M3uSegment* HlsMuxer:: get_segment(int index) const {
-    if (this->playlist->segments.empty() || this->playlist->segments.size() < index + 1) {
+    if (this->playlist->segments.empty() || (int)this->playlist->segments.size() < index + 1) {
         return nullptr;
     }
     return this->playlist->segments[index];
@@ -143,7 +143,7 @@ int get_begin_sequence(const std::vector<M3uSegment*>& segments, int max = 0) {
     if (max <= 0) {
         return segments[0] ? segments[0]->sequence : 0;
     }
-    size_t n = segments.size();
+    int n = segments.size();
     if (n <= max) {
         return segments[0]->sequence;
     }
@@ -157,7 +157,7 @@ std::string HlsMuxer::write_playlist_file_entries(int start) {
     }
     std::string content;
 
-    size_t len = this->playlist->segments.size();
+    int len = this->playlist->segments.size();
     for (auto i = start; i < len; i++) {
         auto item = this->playlist->segments[i];
         content.append(this->write_playlist_file_entry(item));
@@ -523,6 +523,8 @@ int HlsMuxer::start() {
             url.append("/").append(seg->seg_name);
             outputFmtContext = this->new_output_context(url.c_str(), streams);
             this->videoContext->dstFormatContext = outputFmtContext;
+                        this->videoContext->audioClk->setStart(0);
+
             if (segment_index == 0) {
                 av_dump_format(outputFmtContext, 0, url.c_str(), 1);
             }
@@ -623,8 +625,8 @@ void HlsMuxer::send_status(int action) {
     std::string msg;
     const httpCli::Response *res = nullptr;
     try {
-        auto port = (*this->extends_args)["serverPort"].get<std::string>();
-        auto url = (*this->extends_args)["url"].get<std::string>();
+        auto port = this->extends_args->at("serverPort");
+        auto url = this->extends_args->at("url");
         auto server = "http://127.0.0.1:" + port;
         auto target = server + url;
 

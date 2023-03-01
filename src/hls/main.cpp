@@ -5,9 +5,6 @@
 #include <iostream>
 #include <vector>
 
-#include "../util/util.h"
-#include "../http/httpcli.h"
-
 #include "hls.h"
 
 void define_options(cmdline::parser *parser) {
@@ -44,9 +41,13 @@ int main(int argv, char *args[]) {
 
     sm_log("HlsMuxer args, source: {}, ext: {}, target dir: {}", url, ext, dir);
 
-    nlohmann::json ext_args = nullptr; // parse(ext);
+    /*nlohmann::json ext_args = nullptr; // parse(ext);
+    if (!ext.empty()) {
+        ext_args = parse(ext);
+    }*/
+    std::map<std::string, std::string> extra_args;
 
-    auto hlsMuxer = new HlsMuxer(url.c_str(), dir.c_str(), &ext_args);
+    auto hlsMuxer = new HlsMuxer(url.c_str(), dir.c_str(), &extra_args);
     hlsMuxer->start();
 
     httpCli::cleanup();

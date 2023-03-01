@@ -39,7 +39,7 @@ std::shared_ptr<HlsController::OutgoingResponse> HlsController::open(std::shared
         return response;
     }
     auto source = url.get<std::string>();
-    auto streamId = Encrypt::md5(source);
+    auto streamId = md5(source);
 
     if (this->schedule->running(streamId)) {
         auto allocator = this->schedule->hlsProcessors[streamId];

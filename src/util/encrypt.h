@@ -8,13 +8,9 @@
 #include <string>
 #include "md5.h"
 
-class Encrypt {
-
-public:
-    static std::string md5(std::string str) {
-        return Md5(str);
-    };
-
-};
+static inline std::string md5(const std::string& str) {
+    MD5Digest md5(str);
+    return md5.hexdigest();
+}
 
 #endif //VIDEOPLAYER_ENCRYPT_H

@@ -1,14 +1,17 @@
 //
 // Created by cyy on 2022/11/28.
 //
-
+#ifdef __cplusplus
 extern "C" {
+#endif
 // #include "libavutil/timestamp.h"
 #include "libavformat/avformat.h"
 #include "libavutil/time.h"
 
 #include <stdbool.h>
+#ifdef __cplusplus
 }
+#endif
 // ffmpeg -re -i tnhaoxc.flv -c copy -f flv rtmp://192.168.0.104/live
 // ffmpeg -i rtmp://192.168.0.104/live -c copy tnlinyrx.flv
 // ./streamer tnhaoxc.flv rtmp://192.168.0.104/live

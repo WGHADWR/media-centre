@@ -23,6 +23,7 @@ static json parse(const std::string& str) {
     try {
         data = json::parse(str);
     } catch (json::parse_error& e) {
+        //return nullptr;
     }
     return data;
 }
