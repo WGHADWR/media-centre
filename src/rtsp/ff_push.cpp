@@ -26,9 +26,9 @@ int main0(int argc, char *argv[])
     AVPacket pkt;
     const char *in_filename, *out_filename;
     int ret, i;
-    int stream_index = 0;
+    //int stream_index = 0;
     //int *stream_mapping = NULL;
-    int stream_mapping_size = 0;
+    //int stream_mapping_size = 0;
 
     /*if (argc < 3) {
         printf("usage: %s input output\n"
@@ -82,7 +82,7 @@ int main0(int argc, char *argv[])
         return -1;
     }
 
-    stream_mapping_size = ifmt_ctx->nb_streams;
+    //stream_mapping_size = ifmt_ctx->nb_streams;
 //    stream_mapping = av_mallocz_array(stream_mapping_size, sizeof(*stream_mapping));
 //    if (!stream_mapping) {
 //        ret = AVERROR(ENOMEM);
@@ -94,7 +94,7 @@ int main0(int argc, char *argv[])
     AVRational frame_rate;
     double duration;
 
-    int a_index, v_index = -1;
+    //int a_index, v_index = -1;
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         AVStream *out_stream;
         AVStream *in_stream = ifmt_ctx->streams[i];
@@ -108,9 +108,9 @@ int main0(int argc, char *argv[])
         }
 
         if (in_codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-            a_index = i;
+            //a_index = i;
         } else if (in_codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            v_index = i;
+            //v_index = i;
         }
 
         if (push_stream && (in_codecpar->codec_type == AVMEDIA_TYPE_VIDEO)) {

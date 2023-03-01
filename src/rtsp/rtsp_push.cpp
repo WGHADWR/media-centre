@@ -401,7 +401,7 @@ int push_thread(void *data) {
     int v_index = av_find_best_stream(pusher->inputFormatContext, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     int a_index = av_find_best_stream(pusher->inputFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
 
-    for (int i = 0; i < pusher->inputFormatContext->nb_streams; i++) {
+    for (uint32_t i = 0; i < pusher->inputFormatContext->nb_streams; i++) {
         AVStream *stream = pusher->inputFormatContext->streams[i];
         sm_log("Stream %d: %d", i, stream->codecpar->codec_id);
     }

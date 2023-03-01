@@ -4,7 +4,6 @@
 
 #include "hls.h"
 
-
 HlsMuxer::HlsMuxer(const char* url, const char* outdir, const std::map<std::string, std::any>*  ext_args) {
     std::string source = url;
     auto id = md5(source);
@@ -157,6 +156,7 @@ std::string HlsMuxer::write_playlist_file_entries(int start) {
         return "";
     }
     std::string content;
+
     for (auto iter = this->playlist->segments.begin(); iter != this->playlist->segments.end(); iter++) {
         auto seq = (*iter)->sequence;
         if (start <= seq) {
@@ -227,7 +227,6 @@ void segment_file_clean_thread(const HlsMuxer* hlsMuxer) {
                 continue;
             }
 
-            std::vector<M3uSegment*>::iterator iter = playlist->segments.begin();
             while (last >= 0) {
                 std::string file = playlist->outdir + "/";
                 file.append(HLS_SEG_FILE_PREFIX).append(std::to_string(last) + ".ts");
@@ -490,9 +489,16 @@ int HlsMuxer::start() {
 
     int frame_index = 0;
     AVPacket *pkt = av_packet_alloc();
-    while(av_read_frame(videoContext->inputFormatContext, pkt) >= 0) {
-        if (this->exit) {
-            break;
+    while(!this->exit) {
+        ret = av_read_frame(videoContext->inputFormatContext, pkt);
+        if (ret < 0) {
+            av_packet_unref(pkt);
+            if (ret == AVERROR_EOF) {
+                sm_log("av_read_frame eof");
+                break;
+            }
+            sm_error("av_read_frame failed; ret: {}, {}", ret, av_errStr(ret));
+            continue;
         }
 
         if (pkt->stream_index == video_stream_index) {
