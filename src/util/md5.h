@@ -18,17 +18,17 @@
 //      MD5(std::string).hexdigest()
 //
 // assumes that char is 8 bit and int is 32 bit
-class MD5 {
+class MD5Digest {
 public:
     typedef unsigned int size_type; // must be 32bit
 
-    MD5();
-    MD5(const std::string& text);
+    MD5Digest();
+    MD5Digest(const std::string& text);
     void update(const unsigned char *buf, size_type length);
     void update(const char *buf, size_type length);
-    MD5& finalize();
+    MD5Digest& finalize();
     std::string hexdigest() const;
-    friend std::ostream& operator<<(std::ostream&, MD5 md5);
+    friend std::ostream& operator<<(std::ostream&, MD5Digest md5);
 
 private:
     void init();
@@ -59,8 +59,5 @@ private:
     static inline void HH(uint4 &a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
     static inline void II(uint4 &a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac);
 };
-
-std::string Md5(const std::string str);
-
 
 #endif //VIDEOPLAYER_MD5_H

@@ -5,8 +5,10 @@
 #ifndef VIDEOPLAYER_MEDIA_PLAYER_H
 #define VIDEOPLAYER_MEDIA_PLAYER_H
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"
@@ -15,9 +17,11 @@ extern "C"
 #include "libavutil/time.h"
 
 #include "SDL2/SDL.h"
+#ifdef __cplusplus
 }
+#endif
 
-#include "../av_utils/sm_log.h"
+#include "../util/sm_log.h"
 #include "../av_utils/av_utils.h"
 #include "../av_utils/av_packet_queue.h"
 

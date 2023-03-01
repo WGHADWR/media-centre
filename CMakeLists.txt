@@ -11,7 +11,11 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(ASIO_DIR "/opt/cpp-libs/asio")
-    set(YAML-CPP_DIR "/opt/cpp-libs/yaml-cpp/share/cmake/yaml-cpp")
+    # set(YAML-CPP_DIR "/opt/cpp-libs/yaml-cpp/share/cmake/yaml-cpp")
+    set(YAML_CPP_INCLUDE_DIR "/opt/cpp-libs/yaml-cpp/include")
+    set(YAML_CPP_LIBRARY_DIR "/opt/cpp-libs/yaml-cpp/lib")
+    set(YAML_CPP_LIBRARIES "yaml-cpp")
+
     set(SDL2_DIR "/opt/cpp-libs/SDL2/lib/cmake/SDL2")
     set(FFMpeg_PATH "/opt/cpp-libs/ffmpeg-gpl-shared")
 
@@ -19,7 +23,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(oatpp_DIR "/opt/cpp-libs/oatpp-1.3.0/lib/cmake/oatpp-1.3.0")
 
 #    set(spdlog_DIR "/opt/cpp-libs/spdlog/lib/cmake/spdlog")
-    set(EXT_LIBRARIES pthread ssl crypto)
+    set(EXT_LIBRARIES pthread)
 else()
     set(CURL_DIR "D:/Application/msys64/opt/curl")
     set(YAML-CPP_DIR "D:/Application/msys64/opt/yaml-cpp/lib/cmake/yaml-cpp")
@@ -43,7 +47,9 @@ else()
 endif()
 
 #find_package(CURL REQUIRED)
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
 find_package(YAML-CPP REQUIRED)
+endif()
 
 find_package(SDL2 REQUIRED)
 find_package(oatpp REQUIRED)
@@ -62,7 +68,8 @@ set(CURL_LIBRARIES curl)
 
 set(EXT_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 
-set(CMAKE_EXE_LINKER_FLAGS "-L${FFMpeg_LIBDIR} -L${oatpp_LIBRARIES_DIRS} -L${CURL_LIBRARY_DIRS} -I${SPDLOG_INCLUDE_DIRS} ${CMAKE_EXE_LINKER_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "-L${FFMpeg_LIBDIR} -L${oatpp_LIBRARIES_DIRS} -L${CURL_LIBRARY_DIRS} \
+    -L${YAML_CPP_LIBRARY_DIR} ${CMAKE_EXE_LINKER_FLAGS}")
 
 #set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};${SDL2_DIR}")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wwrite-strings")
@@ -79,7 +86,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} \
      -O3 -Wall -lpthread -static \
     ")
 
+set(CMAKE_CXX_FLAGS "-std=c++${CMAKE_CXX_STANDARD} -Wno-unused-function ${CMAKE_CXX_FLAGS}")
 
+MESSAGE( STATUS "CMAKE_VERSION = ${CMAKE_VERSION}")
 MESSAGE( STATUS "CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME}")
 MESSAGE( STATUS "CMAKE_C_STANDARD = ${CMAKE_C_STANDARD}")
 MESSAGE( STATUS "CMAKE_CXX_STANDARD = ${CMAKE_CXX_STANDARD}")
@@ -88,6 +97,7 @@ MESSAGE( STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 MESSAGE( STATUS "CMAKE_CURRENT_LIST_DIR = ${CMAKE_CURRENT_LIST_DIR}")
 MESSAGE( STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 MESSAGE( STATUS "CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
+MESSAGE( STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
 
 message( STATUS "PROJECT_BINARY_DIR = ${PROJECT_BINARY_DIR}")
 
@@ -111,6 +121,7 @@ MESSAGE( STATUS "CURL_LIBRARIES = ${CURL_LIBRARIES}")
 MESSAGE( STATUS "EXT_INCLUDE_DIRS = ${EXT_INCLUDE_DIRS}")
 
 message( STATUS "YAML_CPP_DIR = ${YAML-CPP_DIR}")
+message( STATUS "YAML_CPP_INCLUDE_DIR = ${YAML_CPP_INCLUDE_DIR}")
 
 #if (CMAKE_SYSTEM_NAME MATCHES "MSYS")
 #    set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
@@ -124,13 +135,12 @@ message( STATUS "YAML_CPP_DIR = ${YAML-CPP_DIR}")
 #MESSAGE( STATUS "CMAKE_FIND_LIBRARY_SUFFIXES = ${CMAKE_SYSTEM_NAME}")
 
 set(UTILS_SOURCE_FILES
-        ${PROJECT_SOURCE_DIR}/src/util/encrypt.h
         ${PROJECT_SOURCE_DIR}/src/util/md5.h
         ${PROJECT_SOURCE_DIR}/src/util/md5.cpp
+        ${PROJECT_SOURCE_DIR}/src/util/encrypt.h
         ${PROJECT_SOURCE_DIR}/src/util/cmdline.h
 
-        ${PROJECT_SOURCE_DIR}/src/util/nlohmann/json.hpp
-
+        ${PROJECT_SOURCE_DIR}/src/util/sm_log.h
 #        ${EXT_INCLUDE_DIRS}/spdlog/spdlog.h
         )
 
@@ -139,17 +149,18 @@ set(AV_UTILS_SOURCE_FILES
         ${AV_UTILS_SOURCE_DIR}/av_packet_queue.h
         ${AV_UTILS_SOURCE_DIR}/av_packet_queue.cpp
         ${AV_UTILS_SOURCE_DIR}/av_utils.h
-        ${AV_UTILS_SOURCE_DIR}/sm_log.h
 
         ${AV_UTILS_SOURCE_DIR}/video_context.h
         )
 
+message( STATUS "UTILS_SOURCE_FILES = ${UTILS_SOURCE_FILES}")
 message( STATUS "AV_UTILS_SOURCE_FILES = ${AV_UTILS_SOURCE_FILES}")
 
 include_directories(SYSTEM
         ${CURL_INCLUDE_DIRS}
         ${YAML_CPP_INCLUDE_DIR}
         ${ASIO_INCLUDE_DIRS}
+        ${SPDLOG_INCLUDE_DIRS}
         ${FFMpeg_INCLUDE_DIRS}
         ${SDL2_INCLUDE_DIRS}
         ${oatpp_INCLUDE_DIRS}
@@ -157,8 +168,10 @@ include_directories(SYSTEM
         )
 
 add_subdirectory(src/rtsp)
-add_subdirectory(src/player)
+#add_subdirectory(src/player)
 add_subdirectory(src/hls)
 add_subdirectory(src/web)
+
+add_subdirectory(src/util)
 
 add_subdirectory(src/test)

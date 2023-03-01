@@ -5,8 +5,9 @@
 #ifndef VIDEOPLAYER_RTSP_PUSH_H
 #define VIDEOPLAYER_RTSP_PUSH_H
 
-extern "C"
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"
@@ -19,10 +20,12 @@ extern "C"
 
 #include "string.h"
 #include "ctype.h"
-}
 
-#include <cstring>
-#include "../av_utils/sm_log.h"
+#ifdef __cplusplus
+}
+#endif
+
+#include "../util/sm_log.h"
 #include "../av_utils/av_utils.h"
 
 struct AudioCodecPar {

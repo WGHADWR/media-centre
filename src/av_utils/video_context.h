@@ -20,7 +20,7 @@ extern "C" {
 };
 #endif
 
-#include "sm_log.h"
+#include "../util/sm_log.h"
 #include "av_utils.h"
 
 typedef struct VideoContext {

@@ -16,6 +16,10 @@ add_executable(mediaServer
         ./hls/HlsController.cpp
         )
 
+target_include_directories(mediaServer PUBLIC
+        ${YAML_CPP_INCLUDE_DIR}
+)
+
 target_link_libraries(mediaServer
         -Wl,-Bstatic
         oatpp

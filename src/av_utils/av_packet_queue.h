@@ -5,12 +5,15 @@
 #ifndef VIDEOPLAYER_AV_PACKET_QUEUE_H
 #define VIDEOPLAYER_AV_PACKET_QUEUE_H
 
-extern "C"
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "SDL2/SDL.h"
+#ifdef __cplusplus
 };
+#endif
 
 class AVPacketQueueItem {
 public:

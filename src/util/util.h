@@ -10,19 +10,23 @@
 #include "strings.h"
 
 #include <chrono>
+#include <string>
+//#include <map>
+//#include <any>
 
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 
 #define GET_TIME_NOW_MILLISEC (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())).count()
 
-using json = nlohmann::json;
+using nlojson = nlohmann::json;
 
-static json parse(const std::string& str) {
-    json data;
+static nlojson parse(const std::string& str) {
+    nlojson data;
     try {
-        data = json::parse(str);
-    } catch (json::parse_error& e) {
+        data = nlojson::parse(str);
+    } catch (nlojson::parse_error& e) {
+        //return nullptr;
     }
     return data;
 }

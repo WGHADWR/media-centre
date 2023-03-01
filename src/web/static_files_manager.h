@@ -20,7 +20,7 @@ private:
 
     bool cache_status = true;
 private:
-    oatpp::String getExtension(const oatpp::String& filename);
+    static oatpp::String getExtension(const oatpp::String& filename);
 public:
 
     StaticFilesManager(const oatpp::String& basePath)
@@ -30,7 +30,7 @@ public:
     void set_cache_status(bool open);
 
     oatpp::String getFile(const oatpp::String& path);
-    oatpp::String guessMimeType(const oatpp::String& filename);
+    static oatpp::String guessMimeType(const oatpp::String& filename);
 
 };
 

@@ -32,14 +32,14 @@ std::shared_ptr<HlsController::OutgoingResponse> HlsController::list() {
 
 std::shared_ptr<HlsController::OutgoingResponse> HlsController::open(std::shared_ptr<HlsController::IncomingRequest> request) {
     auto body = request->readBodyToString().operator std::string();
-    json data = parse(body);
+    nlojson data = parse(body);
     auto url = data["url"];
     if (url.is_null()) {
         auto response = createResponse(Status::CODE_400, "Parameter url cannot be null");
         return response;
     }
     auto source = url.get<std::string>();
-    auto streamId = Encrypt::md5(source);
+    auto streamId = md5(source);
 
     if (this->schedule->running(streamId)) {
         auto allocator = this->schedule->hlsProcessors[streamId];

@@ -4,14 +4,18 @@
 
 #include "iostream"
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"
 #include "libswscale/swscale.h"
 #include "libavutil/avutil.h"
 #include "libavutil/audio_fifo.h"
+#ifdef __cplusplus
 }
+#endif
 
 typedef struct SwrOpts {
     AVChannelLayout out_ch_layout;
@@ -184,7 +188,7 @@ int write_pcm(FILE *file, AVCodecContext *codecContext, uint8_t **data, /* AVFra
     return 0;
 }
 
-int main() {
+int main_() {
     const char* src = "rtsp://192.168.2.46:8554/test1";
 //    src = "D:/Pitbull-Feel-This-Moment.mp4";
     const char* output_dir = "D:/ts/";

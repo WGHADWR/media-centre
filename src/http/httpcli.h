@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <cstring>
 #include <utility>
 
 #include "curl/curl.h"
@@ -59,7 +60,7 @@ public:
         struct curl_slist *headers = nullptr;
         headers = curl_slist_append(headers, "cache-control: no-cache");
         if (content_type) {
-            char ct[255];
+            char ct[255] = { 0 };
             strcat(ct, content_type);
             headers = curl_slist_append(headers, ct);
         }

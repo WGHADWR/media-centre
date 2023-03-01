@@ -2,8 +2,9 @@
 // Created by cyy on 2022/11/29.
 //
 
-extern "C"
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 #include "libswresample/swresample.h"
@@ -12,7 +13,9 @@ extern "C"
 #include "libavutil/time.h"
 
 #include "SDL2/SDL.h"
+#ifdef __cplusplus
 }
+#endif
 
 #include <iostream>
 

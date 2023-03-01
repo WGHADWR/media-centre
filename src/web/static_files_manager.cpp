@@ -5,24 +5,22 @@
 #include "static_files_manager.h"
 
 #include <fstream>
-#include <cstring>
 #include <cstdarg>
-
 
 void StaticFilesManager::set_cache_status(bool open) {
     this->cache_status = open;
 }
 
 oatpp::String StaticFilesManager::getExtension(const oatpp::String& filename) {
-    v_int32 dotPos = 0;
-    for(v_int32 i = filename->size() - 1; i > 0; i--) {
+    int dotPos = 0;
+    for(auto i = filename->size() - 1; i > 0; i--) {
         if(filename->data()[i] == '.') {
-            dotPos = i;
+            dotPos = (int)i;
             break;
         }
     }
-    if(dotPos != 0 && dotPos < filename->size() - 1) {
-        return oatpp::String((const char*)&filename->data()[dotPos + 1], filename->size() - dotPos - 1);
+    if(dotPos != 0 && dotPos < (int)filename->size() - 1) {
+        return {(const char*)&filename->data()[dotPos + 1], (int)filename->size() - dotPos - 1};
     }
     return nullptr;
 }

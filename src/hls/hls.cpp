@@ -5,9 +5,9 @@
 #include "hls.h"
 
 
-HlsMuxer::HlsMuxer(const char* url, const char* outdir, const nlohmann::json* ext_args) {
+HlsMuxer::HlsMuxer(const char* url, const char* outdir, const std::map<std::string, std::any>*  ext_args) {
     std::string source = url;
-    auto id = Encrypt::md5(source);
+    auto id = md5(source);
     std::string dir = outdir;
     dir.append("/").append(id);
     this->outdir = dir;
@@ -20,6 +20,7 @@ HlsMuxer::HlsMuxer(const char* url, const char* outdir, const nlohmann::json* ex
     this->playlist->outdir = this->outdir;
     this->playlist->target_duration = this->segment_duration;
     this->playlist->sequence = 0;
+    this->playlist->segments.reserve(MAX_SEGMENTS * 2);
 
     this->exit = false;
 }
@@ -81,7 +82,7 @@ std::string HlsMuxer::new_seg_file_name(int segment_index) {
 }
 
 M3uSegment* HlsMuxer:: get_segment(int index) const {
-    if (this->playlist->segments.empty() || this->playlist->segments.size() < index + 1) {
+    if (this->playlist->segments.empty() || (int)this->playlist->segments.size() < index + 1) {
         return nullptr;
     }
     return this->playlist->segments[index];
@@ -143,7 +144,7 @@ int get_begin_sequence(const std::vector<M3uSegment*>& segments, int max = 0) {
     if (max <= 0) {
         return segments[0] ? segments[0]->sequence : 0;
     }
-    size_t n = segments.size();
+    int n = segments.size();
     if (n <= max) {
         return segments[0]->sequence;
     }
@@ -156,13 +157,12 @@ std::string HlsMuxer::write_playlist_file_entries(int start) {
         return "";
     }
     std::string content;
-
-    size_t len = this->playlist->segments.size();
-    for (auto i = start; i < len; i++) {
-        auto item = this->playlist->segments[i];
-        content.append(this->write_playlist_file_entry(item));
+    for (auto iter = this->playlist->segments.begin(); iter != this->playlist->segments.end(); iter++) {
+        auto seq = (*iter)->sequence;
+        if (start <= seq) {
+            content.append(this->write_playlist_file_entry(*iter));
+        }
     }
-
     return content;
 }
 
@@ -177,8 +177,7 @@ std::string HlsMuxer::write_playlist_file_end() {
  * @return
  */
 int HlsMuxer::write_playlist(int type) {
-    int max_items = MAX_SEGMENTS;
-    int begin = get_begin_sequence(this->playlist->segments, max_items);
+    int begin = get_begin_sequence(this->playlist->segments, MAX_SEGMENTS);
     this->playlist->sequence = begin;
 
     std::string content;
@@ -210,25 +209,33 @@ void HlsMuxer::close() {
     this->exit = true;
 }
 
+//Todo Segment clear thread
 void segment_file_clean_thread(const HlsMuxer* hlsMuxer) {
     auto playlist = hlsMuxer->playlist;
     while (!hlsMuxer->exit) {
-        if (playlist && playlist->segments.empty()) {
+        if (!playlist || playlist->segments.empty()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(3000));
             continue;
         }
-
+        /*if (playlist->segments.size() > MAX_SEGMENTS) {
+            sm_log("Segment count: {}", playlist->segments.size());
+        }*/
         try {
-            int last = playlist->segments[playlist->segments.size() - 1]->sequence;
-            int i = last - MAX_SEGMENTS - 2;
-            while (i >= 0) {
-                std::string file = playlist->outdir + "/";
-                file.append(HLS_SEG_FILE_PREFIX).append(std::to_string(i--) + ".ts");
+            int last_seq = playlist->segments[playlist->segments.size() - 1]->sequence;
+            int last = last_seq - MAX_SEGMENTS - 2;
+            if (last <= 0) {
+                continue;
+            }
 
+            std::vector<M3uSegment*>::iterator iter = playlist->segments.begin();
+            while (last >= 0) {
+                std::string file = playlist->outdir + "/";
+                file.append(HLS_SEG_FILE_PREFIX).append(std::to_string(last) + ".ts");
                 if (!std::filesystem::exists(file)) {
                     break;
                 }
                 std::filesystem::remove(file);
+                last--;
             }
         } catch (std::exception& e) {
             sm_error("Clear segment files error; {}", e.what());
@@ -255,31 +262,45 @@ int HlsMuxer::decode_audio_packet(AVPacket *pkt) {
         return ret;
     }
     AVFrame *frame = av_frame_alloc();
+
+    AVFrame *dest = av_frame_alloc();
+    dest->ch_layout = this->videoContext->dstAudioCodecContext->ch_layout;
+    dest->format = this->videoContext->dstAudioCodecContext->sample_fmt;
+    dest->sample_rate = this->videoContext->dstAudioCodecContext->sample_rate;
+    dest->nb_samples = this->videoContext->dstAudioCodecContext->frame_size;
+
+    ret = av_frame_get_buffer(dest, 0);
+    if (ret != 0) {
+        av_frame_free(&dest);
+        av_frame_free(&frame);
+
+        sm_error("av_frame_get_buffer failed. ret: {}, {}", ret, av_errStr(ret));
+        return ret;
+    }
+
     while (true) {
         ret = avcodec_receive_frame(this->videoContext->inAudioCodecContext, frame);
         if (ret != 0) {
-            av_frame_free(&frame);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                return 0;
+            //av_frame_unref(frame);
+            if (ret == AVERROR(EAGAIN)) { // || ret == AVERROR_EOF) {
+                //return 0;
             }
-            return ret;
+            break;
         }
 
-        AVFrame *dest = av_frame_alloc();
-        dest->ch_layout = this->videoContext->dstAudioCodecContext->ch_layout;
-        dest->format = this->videoContext->dstAudioCodecContext->sample_fmt;
-        dest->sample_rate = this->videoContext->dstAudioCodecContext->sample_rate;
-        dest->nb_samples = this->videoContext->dstAudioCodecContext->frame_size;
-
-        av_frame_get_buffer(dest, 0);
         int resample_count = vc_swr_resample(this->swrContext, frame, dest);
-
         if ((ret = av_audio_fifo_realloc(this->videoContext->fifo, av_audio_fifo_size(this->videoContext->fifo) + resample_count)) < 0) {
             sm_error("Could not reallocate FIFO");
-            return ret;
+            break;
         }
         av_audio_fifo_write(this->videoContext->fifo, reinterpret_cast<void **>(dest->data), resample_count);
+
+        av_frame_unref(dest);
+        av_frame_unref(frame);
     }
+    av_frame_free(&dest);
+    av_frame_free(&frame);
+    return ret;
 }
 
 int write_audio_packet(HlsMuxer *muxer, AVPacket *pkt) {
@@ -298,6 +319,7 @@ int HlsMuxer::write_encode_audio_packet() {
         // sm_warn("No enough data to read");
         return AVERROR(EAGAIN);
     }
+    // sm_log("FIFO size: {}", av_audio_fifo_size(fifo));
     const int frame_size = FFMIN(av_audio_fifo_size(fifo), dstCodecContext->frame_size);
 
     AVFrame *frame = av_frame_alloc();
@@ -337,14 +359,12 @@ int HlsMuxer::write_encode_audio_packet() {
     while(true) {
         ret = avcodec_receive_packet(dstCodecContext, pkt);
         if (ret != 0) {
-            av_packet_free(&pkt);
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 // printf("avcodec_receive_packet AVERROR_EOF. ret: %d\n", ret);
-                break;
             } else {
                 sm_error("avcodec_receive_packet failed. ret: {}", ret);
             }
-            return ret;
+            break;
         }
 
         ret = write_audio_packet(this, pkt);
@@ -353,6 +373,7 @@ int HlsMuxer::write_encode_audio_packet() {
             // break;
         }
     }
+    av_frame_free(&frame);
     av_packet_free(&pkt);
     return 0;
 }
@@ -412,18 +433,18 @@ int HlsMuxer::start() {
         return ret;
     }
 
-    VideoContext *videoContext = vc_alloc_context();
-    ret = vc_open_input(videoContext, this->playlist->url);
+    VideoContext *vc = vc_alloc_context();
+    ret = vc_open_input(vc, this->playlist->url);
     if (ret != 0) {
         sm_error("cannot open media file, {}", ret);
-        vc_free_context(videoContext);
+        vc_free_context(vc);
         return -1;
     }
     sm_log("Open input success. {}", this->playlist->url);
 
-    av_dump_format(videoContext->inputFormatContext, 0, videoContext->file, 0);
+    av_dump_format(vc->inputFormatContext, 0, vc->file, 0);
 
-    this->videoContext = videoContext;
+    this->videoContext = vc;
 
     ret = new_output_audioCodecContext(this);
     if (ret != 0) {
@@ -479,12 +500,17 @@ int HlsMuxer::start() {
             double_t time_sec = (double_t)pkt->pts * av_q2d(videoContext->inAudioStream->time_base);
             auto index = (int64_t)(time_sec / this->segment_duration);
             double_t duration = time_sec - seg_seconds;
+            if (duration <= 0) {
+                av_packet_unref(pkt);
+                continue;
+            }
             seg_duration = duration;
             //int64_t offset = time_sec % 5;
 
             if (seg_index == -1) {
                 seg_index = index;
             }
+
             if (seg_index != index) {
                 av_write_trailer(outputFmtContext);
                 avio_close(outputFmtContext->pb);
@@ -508,6 +534,7 @@ int HlsMuxer::start() {
                 seg_seconds = time_sec;
             }
         } else {
+            av_packet_unref(pkt);
             continue;
         }
 
@@ -518,11 +545,18 @@ int HlsMuxer::start() {
             if (!seg) {
                 seg = this->new_seg_file(segment_index, this->playlist->target_duration);
                 set_seg_duration = false;
+
+                //TODO Erase segments list
+                if (this->playlist->segments.size() > MAX_SEGMENTS) {
+                    this->playlist->segments.erase(this->playlist->segments.begin());
+                }
             }
             std::string url = outdir;
             url.append("/").append(seg->seg_name);
             outputFmtContext = this->new_output_context(url.c_str(), streams);
             this->videoContext->dstFormatContext = outputFmtContext;
+                        this->videoContext->audioClk->setStart(0);
+
             if (segment_index == 0) {
                 av_dump_format(outputFmtContext, 0, url.c_str(), 1);
             }
@@ -554,13 +588,12 @@ int HlsMuxer::start() {
             if (ret < 0) {
                 sm_error("Write video packet failed; av_interleaved_write_frame error {}, {}", ret, av_errStr(ret));
             }
+            av_packet_unref(pkt);
 //            printf("Rescaled, time: %f, pts: %lld, dts: %lld\n", time_sec * AV_TIME_BASE, pkt->pts, pkt->dts);
             frame_index++;
         } else if (pkt->stream_index == audio_stream_index) {
             // double_t time_sec = pkt->pts * av_q2d(videoContext->inAudioStream->time_base);
             // sm_log("Audio time: {}, pts: {}, du: {}", time_sec, pkt->pts, pkt->duration);
-
-            // this->videoContext->audioStream->codecpar->codec_id
 
             //todo same codec
             if (this->videoContext->inVideoStream->codecpar->codec_id == this->videoContext->dstAudioCodecContext->codec_id) {
@@ -569,6 +602,7 @@ int HlsMuxer::start() {
                     sm_error("Write audio packet failed; av_interleaved_write_frame failed, ret: {}, {}", ret, av_errStr(ret));
                     // break;
                 }
+                av_packet_unref(pkt);
                 continue;
             }
 //            av_packet_rescale_ts(pkt, videoContext->inAudioStream->time_base, outputFmtContext->streams[this->dst_audio_stream_index]->time_base);
@@ -578,17 +612,23 @@ int HlsMuxer::start() {
 
             ret = this->decode_audio_packet(pkt);
             if (ret != 0) {
-                sm_error("Decode audio packet failed {}", ret);
-                continue;
+                av_packet_unref(pkt);
+                if (ret != AVERROR(EAGAIN)) {
+                    sm_error("Decode audio packet failed {}", ret);
+                    continue;
+                }
             }
             ret = this->write_encode_audio_packet();
             if (ret != 0) {
+                av_packet_unref(pkt);
                 if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     continue;
                 }
                 sm_error("Write audio packet failed {}", ret);
             }
+            av_packet_unref(pkt);
         } else {
+            av_packet_unref(pkt);
             continue;
         }
     }
@@ -623,9 +663,9 @@ void HlsMuxer::send_status(int action) {
     std::string msg;
     const httpCli::Response *res = nullptr;
     try {
-        auto port = (*this->extends_args)["serverPort"].get<std::string>();
-        auto url = (*this->extends_args)["url"].get<std::string>();
-        auto server = "http://127.0.0.1:" + port;
+        auto port = std::any_cast<int>(this->extends_args->at("serverPort"));
+        auto url = std::any_cast<std::string>(this->extends_args->at("url"));
+        std::string server = &"http://127.0.0.1:" [ port];
         auto target = server + url;
 
         msg = "host: " + server + url + ", body: " + data.dump();

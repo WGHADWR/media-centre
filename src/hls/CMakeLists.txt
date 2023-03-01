@@ -1,21 +1,23 @@
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_VERSION})
 
-project(hlsMedia VERSION 0.1 LANGUAGES C CXX)
+project(hls VERSION 0.1 LANGUAGES CXX)
 
-aux_source_directory(. SOURCE_DIR)
+aux_source_directory(. SOURCE_FILES)
 
-message(STATUS "HLS_SOURCE_DIR = ${SOURCE_DIR}")
+message(STATUS "HLS_SOURCE_FILES = ${SOURCE_FILES}")
 
-add_executable(hlsMedia
-        ${SOURCE_DIR}
+add_executable(hls
         ${UTILS_SOURCE_FILES}
 
         ${AV_UTILS_SOURCE_DIR}/video_context.h
         ${PROJECT_SOURCE_DIR}/../http/httpcli.h
+
+        ${SOURCE_FILES}
         )
 
-target_link_libraries(hlsMedia PRIVATE
+target_link_libraries(hls PUBLIC
         ${CURL_LIBRARIES}
         ${FFMpeg_LIBRARIES}
         ${EXT_LIBRARIES}
+        util
         )

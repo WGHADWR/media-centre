@@ -29,7 +29,9 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 #include "libavformat/avformat.h"
 #include "libavformat/avio.h"
@@ -44,7 +46,9 @@ extern "C" {
 #include "libavutil/opt.h"
 
 #include "libswresample/swresample.h"
+#ifdef __cplusplus
 }
+#endif
 
 /* The output bit rate in bit/s */
 #define OUTPUT_BIT_RATE 96000
