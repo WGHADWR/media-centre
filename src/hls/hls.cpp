@@ -4,7 +4,6 @@
 
 #include "hls.h"
 
-
 HlsMuxer::HlsMuxer(const char* url, const char* outdir, const std::map<std::string, std::any>*  ext_args) {
     std::string source = url;
     auto id = md5(source);
@@ -157,6 +156,7 @@ std::string HlsMuxer::write_playlist_file_entries(int start) {
         return "";
     }
     std::string content;
+
     for (auto iter = this->playlist->segments.begin(); iter != this->playlist->segments.end(); iter++) {
         auto seq = (*iter)->sequence;
         if (start <= seq) {
