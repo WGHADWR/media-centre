@@ -34,6 +34,8 @@ public:
 
     int start();
 
+    [[maybe_unused]] static int test_run();
+
 };
 
 #endif //VIDEOPLAYER_WEBSERVER_H

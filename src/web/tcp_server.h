@@ -12,6 +12,8 @@
 #include <memory>
 #include <utility>
 
+#include "../util/sm_log.h"
+
 namespace net {
 
     using asio::ip::tcp;

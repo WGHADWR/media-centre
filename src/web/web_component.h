@@ -26,14 +26,22 @@ private:
 public:
     std::shared_ptr<oatpp::network::ServerConnectionProvider> serverConnectionProvider;
 
-private:
+    std::shared_ptr<oatpp::web::server::interceptor::RequestInterceptor> _requestInterceptor;
+
+public:
+    explicit WebComponent(int port, oatpp::web::server::interceptor::RequestInterceptor *requestInterceptor) {
+        this->port = port;
+        this->_requestInterceptor = std::shared_ptr<oatpp::web::server::interceptor::RequestInterceptor>(requestInterceptor);
+        this->init();
+    }
+
     void init() {
         this->serverConnectionProvider = oatpp::network::tcp::server::ConnectionProvider::createShared({"0.0.0.0", static_cast<v_uint16>(this->port), oatpp::network::Address::IP_4});
+        this->serverConnectionHandler.getObject()->addRequestInterceptor(this->_requestInterceptor);
     }
-public:
-    explicit WebComponent(int port) {
-        this->port = port;
-        this->init();
+
+    void addRequestInterceptor(oatpp::web::server::interceptor::RequestInterceptor *requestInterceptor) {
+        this->_requestInterceptor = std::shared_ptr<oatpp::web::server::interceptor::RequestInterceptor>(requestInterceptor);
     }
 
     /**
@@ -65,10 +73,12 @@ public:
     /**
      *  Create ConnectionHandler component which uses Router component to route requests
      */
-    OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::network::ConnectionHandler>, serverConnectionHandler)([] {
+    OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::web::server::AsyncHttpConnectionHandler>, serverConnectionHandler)([] {
         OATPP_COMPONENT(std::shared_ptr<oatpp::web::server::HttpRouter>, router); // get Router component
         OATPP_COMPONENT(std::shared_ptr<oatpp::async::Executor>, executor); // get Async executor component
-        return oatpp::web::server::AsyncHttpConnectionHandler::createShared(router, executor);
+
+        auto connectionHandler = oatpp::web::server::AsyncHttpConnectionHandler::createShared(router, executor);
+        return connectionHandler;
     }());
 
     /**

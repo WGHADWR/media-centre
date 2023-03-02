@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}")
 
+set(PROJECT_ROOT_DIR "${PROJECT_SOURCE_DIR}")
+
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(ASIO_DIR "/opt/cpp-libs/asio")
     # set(YAML-CPP_DIR "/opt/cpp-libs/yaml-cpp/share/cmake/yaml-cpp")
@@ -65,6 +67,8 @@ set(FFMpeg_LIBDIR ${FFMpeg_PATH}/lib)
 set(CURL_INCLUDE_DIRS "${CURL_DIR}/include")
 set(CURL_LIBRARY_DIRS "${CURL_DIR}/lib")
 set(CURL_LIBRARIES curl)
+
+set(oatpp_LIBRARIES "oatpp")
 
 set(EXT_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 

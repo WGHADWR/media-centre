@@ -8,17 +8,26 @@ std::string HlsController::new_hls_command(std::string& source) {
     std::string hlsCmd = HLS_EXEC_PROGRAM;
 
 #if defined(WIN32) || defined(__WIN32) || defined(__WIN32__)
-    hlsCmd = std::string(HLS_EXEC_PROGRAM).append(".exe");
+    hlsCmd = "start /b " + hlsCmd + ".exe";
+#endif
+#ifdef linux
+    hlsCmd = "./" + hlsCmd;
 #endif
 
-    nlohmann::json extArgs = {
+    nlojson extArgs = {
             { "url", "/hls/muxer/status" }
     };
-    extArgs["serverPort"] = std::to_string(this->webConfig->port);
+    extArgs["serverPort"] = this->webConfig->port;
+    auto extra = extArgs.dump();
+    extra = replaceAll(extra, "\"", "\\\"");
 
     hlsCmd.append(" -s ").append(source);
     hlsCmd.append(" -d ").append(this->webConfig->hlsDst);
-    hlsCmd.append(" -x ").append(extArgs.dump());
+    hlsCmd.append(" -e ").append(extra);
+
+#ifdef linux
+    hlsCmd.append(" &");
+#endif
 
     return hlsCmd;
 }
@@ -80,10 +89,25 @@ std::shared_ptr<HlsController::OutgoingResponse> HlsController::heartbeat(std::s
 
 std::shared_ptr<HlsController::OutgoingResponse> HlsController::muxerStatus(std::shared_ptr<IncomingRequest> request) {
     auto body = request->readBodyToString().operator std::string();
-    //json data = parse(body);
-    std::cout << body << std::endl;
+    // sm_log("body: {}", body);
+    nlojson json = parse(body);
+    if (json.is_null() || json.empty()) {
+        auto response = createResponse(Status::CODE_400, "Invalid parameters");
+        response->putHeader(Header::CONTENT_TYPE, HTTP_MIME_TYPE_JSON);
+        return response;
+    }
+    auto id = json.at("id").get<std::string>();
+    auto pid = json.at("pid").get<uint32_t>();
+    if (id.empty() || pid == 0) {
+        auto response = createResponse(Status::CODE_400, "Invalid parameters");
+        response->putHeader(Header::CONTENT_TYPE, HTTP_MIME_TYPE_JSON);
+        return response;
+    }
+    this->schedule->updateProcessStatus(id, pid);
+    // sm_log("living time: {}", this->schedule->get(id) ? this->schedule->get(id)->last_living_time : -1);
 
-    auto response = createResponse(Status::CODE_200, "");
+    auto expired = this->schedule->has_expired(id);
+    auto response = createResponse(Status::CODE_200, "{ \"expired\": " + std::to_string(expired) + " }");
     response->putHeader(Header::CONTENT_TYPE, HTTP_MIME_TYPE_JSON);
     return response;
 }

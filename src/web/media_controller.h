@@ -37,7 +37,7 @@ public:
         return std::shared_ptr<MediaController>(std::make_shared<MediaController>(objectMapper));
     }
 
-#include OATPP_CODEGEN_BEGIN(ApiController)"oatpp/codegen/ApiController_define.hpp"
+#include OATPP_CODEGEN_BEGIN(ApiController)
 
     ENDPOINT_ASYNC("GET", "/about", About) {
         ENDPOINT_ASYNC_INIT(About)
@@ -58,7 +58,7 @@ public:
         }
     };
 
-#include OATPP_CODEGEN_END(ApiController)"oatpp/codegen/ApiController_undef.hpp"
+#include OATPP_CODEGEN_END(ApiController)
 };
 
 #endif //VIDEOPLAYER_MEDIA_CONTROLLER_H

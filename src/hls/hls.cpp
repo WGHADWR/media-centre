@@ -4,18 +4,70 @@
 
 #include "hls.h"
 
-HlsMuxer::HlsMuxer(const char* url, const char* outdir, const std::map<std::string, std::any>*  ext_args) {
-    std::string source = url;
+//TODO Heart beat
+void heartbeat(HlsMuxer* muxer) {
+    while (!muxer->exit) {
+        nlojson response = muxer->send_status(1);
+        if (response.is_null() && muxer->retry >= HlsMuxer::HEARTBEAT_MAX_RETRY) {
+            muxer->exit = true;
+        }
+        if (!response.is_null()) {
+            auto expired = response.at("expired").get<int>();
+            if (expired) {
+                sm_warn("Hls session expired");
+                muxer->exit = true;
+            }
+        }
+        sleep(muxer->HEARTBEAT_INTERVAL);
+    }
+}
+
+//Todo Segment clear thread
+void segment_file_clean_thread(const HlsMuxer* hlsMuxer) {
+    auto playlist = hlsMuxer->playlist;
+    while (!hlsMuxer->exit) {
+        if (!playlist || playlist->segments.empty() || playlist->segments.size() == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+            continue;
+        }
+        /*if (playlist->segments.size() > MAX_SEGMENTS) {
+            sm_log("Segment count: {}", playlist->segments.size());
+        }*/
+        try {
+            int last_seq = playlist->segments[playlist->segments.size() - 1]->sequence;
+            int last = last_seq - MAX_SEGMENTS - 2;
+            if (last <= 0) {
+                continue;
+            }
+
+            while (last >= 0) {
+                std::string file = playlist->outdir + "/";
+                file.append(HLS_SEG_FILE_PREFIX).append(std::to_string(last) + ".ts");
+                if (!std::filesystem::exists(file)) {
+                    break;
+                }
+                std::filesystem::remove(file);
+                last--;
+            }
+        } catch (std::exception& e) {
+            sm_error("Clear segment files error; {}", e.what());
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    }
+}
+
+HlsMuxer::HlsMuxer(const CmdArgs* args) {
+    this->cmdArgs = args;
+
+    std::string source = args->source;
     auto id = md5(source);
-    std::string dir = outdir;
+    std::string dir = args->dest;
     dir.append("/").append(id);
     this->outdir = dir;
     this->streamId = id;
 
-    this->extends_args = ext_args;
-
     this->playlist = new M3uPlaylist;
-    this->playlist->url = url;
+    this->playlist->url = args->source.c_str();
     this->playlist->outdir = this->outdir;
     this->playlist->target_duration = this->segment_duration;
     this->playlist->sequence = 0;
@@ -201,45 +253,20 @@ int HlsMuxer::write_playlist(int type) {
 }
 
 void HlsMuxer::close() {
-//    if (this->playlist->file) {
-//        fclose(this->playlist->file);
-//    }
-    sm_log("Segment count: {}", this->playlist->segments.size());
+    //sm_log("Segment count: {}", this->playlist->segments.size());
     this->playlist->segments.clear();
     this->exit = true;
+
+    vc_free_context(videoContext);
 }
 
-//Todo Segment clear thread
-void segment_file_clean_thread(const HlsMuxer* hlsMuxer) {
-    auto playlist = hlsMuxer->playlist;
-    while (!hlsMuxer->exit) {
-        if (!playlist || playlist->segments.empty()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-            continue;
-        }
-        /*if (playlist->segments.size() > MAX_SEGMENTS) {
-            sm_log("Segment count: {}", playlist->segments.size());
-        }*/
-        try {
-            int last_seq = playlist->segments[playlist->segments.size() - 1]->sequence;
-            int last = last_seq - MAX_SEGMENTS - 2;
-            if (last <= 0) {
-                continue;
-            }
-
-            while (last >= 0) {
-                std::string file = playlist->outdir + "/";
-                file.append(HLS_SEG_FILE_PREFIX).append(std::to_string(last) + ".ts");
-                if (!std::filesystem::exists(file)) {
-                    break;
-                }
-                std::filesystem::remove(file);
-                last--;
-            }
-        } catch (std::exception& e) {
-            sm_error("Clear segment files error; {}", e.what());
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+void HlsMuxer::heart_beat() {
+    try {
+        std::thread th_hb(heartbeat, this);
+        th_hb.detach();
+    } catch (std::exception& e) {
+        sm_error("Start heart beat thread failed; {}", e.what());
+        this->exit = true;
     }
 }
 
@@ -287,7 +314,7 @@ int HlsMuxer::decode_audio_packet(AVPacket *pkt) {
             break;
         }
 
-        int resample_count = vc_swr_resample(this->swrContext, frame, dest);
+        int resample_count = vc_swr_resample(this->videoContext->swr, frame, dest);
         if ((ret = av_audio_fifo_realloc(this->videoContext->fifo, av_audio_fifo_size(this->videoContext->fifo) + resample_count)) < 0) {
             sm_error("Could not reallocate FIFO");
             break;
@@ -451,11 +478,15 @@ int HlsMuxer::start() {
         return -1;
     }
 
-    //TODO clear thread
+    //TODO Start clear thread
     if (videoContext->duration < 0) {
         this->seg_clear();
     }
 
+    //TODO Start heart beat thread
+    if (!this->cmdArgs->standalone) {
+        this->heart_beat();
+    }
     //printf("Duration: %lld, %lld\n", videoContext->duration, videoContext->duration / AV_TIME_BASE);
 
     std::vector<AVStream*> streams = {
@@ -476,9 +507,17 @@ int HlsMuxer::start() {
             this->videoContext->inAudioCodecContext->sample_fmt,
             this->videoContext->inAudioCodecContext->sample_rate,
     };
-    ret = init_swr_context(&this->swrContext, &swrOpts);
+    ret = init_swr_context(&this->videoContext->swr, &swrOpts);
     if (ret < 0) {
         return ret;
+    }
+
+    //TODO Write index.m3u8, first
+    ret = this->write_playlist(1);
+    if (ret < 0) {
+        sm_error("Write m3u8 index file failed");
+        this->close();
+        return -1;
     }
 
     int64_t seg_index = -1;
@@ -530,8 +569,8 @@ int HlsMuxer::start() {
                     this->write_playlist(1);
 
                     //TODO Send status
-                    if (segment_index == 0) {
-                        // this->send_status(1);
+                    if (segment_index == 0 && !this->cmdArgs->standalone) {
+                        this->send_status(1);
                     }
                 }
 
@@ -639,6 +678,8 @@ int HlsMuxer::start() {
         }
     }
 
+    sm_log("Hls muxer exited");
+
     //TODO Set last segment duration
     if (!set_seg_duration && !this->playlist->segments.empty()) {
         this->playlist->segments[this->playlist->segments.size() - 1]->duration = seg_duration;
@@ -647,45 +688,34 @@ int HlsMuxer::start() {
     if (videoContext->duration > 0) {
         this->write_playlist(0);
     }
-    this->close();
 
     av_packet_free(&pkt);
     av_write_trailer(outputFmtContext);
     //avformat_free_context(outputFmtContext);
 
-    vc_free_context(videoContext);
+    this->close();
     return 0;
 }
 
-void HlsMuxer::send_status(int action) {
-    if (!check_extend_args(this->extends_args)) {
-        return;
-    }
-    nlohmann::json data;
-    data["action"] = action;
-    if (action == 1) {
-        data["id"] = this->streamId;
-    }
-    std::string msg;
-    const httpCli::Response *res = nullptr;
+nlojson HlsMuxer::send_status(int action) {
+    nlojson res;
     try {
-        auto port = std::any_cast<int>(this->extends_args->at("serverPort"));
-        auto url = std::any_cast<std::string>(this->extends_args->at("url"));
-        std::string server = &"http://127.0.0.1:" [ port];
-        auto target = server + url;
-
-        msg = "host: " + server + url + ", body: " + data.dump();
-        res = httpCli::post(target.c_str(), data.dump().c_str(), "application/json");
-        if (!res || res->statusCode != 200) {
-            throw httpCli::RequestError("Send status failed");
-        }
-        sm_log("Send status success, {}", msg);
-    } catch (httpCli::RequestError& e) {
-        sm_error("Send status error: {}", e.what());
-        if (res) {
-            sm_error("  status code: {}, {}, {}", res->statusCode, res->statusText, msg);
-        }
+        res = this->statusManager->send(action, this->streamId, this->cmdArgs->extraArgs);
+        /*auto expired = res.at("expired").get<int>();
+        if (expired) {
+            sm_warn("Hls session expired");
+            // this->exit = true;
+        }*/
+        //sm_log("{}", res.dump());
+        this->retry = 0;
+        return res;
+    } catch (std::string& e) {
+        sm_error("Send status error: {}", e);
     } catch (std::exception& e) {
         sm_error("Send status error; {}", e.what());
+    } catch (...) {
+        sm_error("Send status error;");
     }
+    this->retry++;
+    return res;
 }

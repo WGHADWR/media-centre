@@ -40,6 +40,8 @@ typedef struct VideoContext {
     AVStream *dstVideoStream;
     AVStream *dstAudioStream;
 
+    SwrContext *swr;
+
     AVAudioFifo *fifo;
 
     Clock *audioClk;
@@ -206,6 +208,10 @@ static int vc_free_context(VideoContext *vc) {
             avio_close(vc->dstFormatContext->pb);
         }*/
         avformat_free_context(vc->dstFormatContext);
+    }
+
+    if (vc->swr) {
+        swr_free(&vc->swr);
     }
 
     free(vc);

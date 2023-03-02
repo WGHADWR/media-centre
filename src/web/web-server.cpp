@@ -4,10 +4,6 @@
 
 #include "web-server.h"
 
-/***
- * httplib
- * @param serv
- */
 /*
 void set_server_handler(httplib::Server *serv) {
     serv->Get("/about", [](const httplib::Request &, httplib::Response &resp) {
@@ -53,33 +49,46 @@ public:
     }
 };
 
-static YAML::Node config;
 
-void parse_configs() {
-    try {
-        config = YAML::LoadFile("media-server.yaml");
-    } catch (std::exception& e) {
-        std::cout << "Load config failed; " << e.what() << std::endl;
+class WebRequestInterceptor : public oatpp::web::server::interceptor::RequestInterceptor {
+public:
+    std::shared_ptr<OutgoingResponse> intercept(const std::shared_ptr<IncomingRequest>& request) override {
+        auto routes = request->getStartingLine().path.std_str();
+
+        auto userAgent = request->getHeader("User-Agent");
+        auto &context = request->getConnection()->getInputStreamContext();
+        auto address_format = context.getProperties().get("peer_address_format");
+        auto address = context.getProperties().get("peer_address");
+        auto port = context.getProperties().get("peer_port");
+
+        OATPP_LOGV("Interceptor", "User-Agent: %s", userAgent == nullptr ? "N/A" : userAgent->c_str());
+        OATPP_LOGV("Interceptor", "Client IP: %s - %s port: %s, route: %s",
+                   (address_format != nullptr ? address_format->c_str() : "N/A"),
+                   (address != nullptr ? address->c_str() : "N/A"),
+                   (port != nullptr ? port->c_str() : "N/A"),
+                   routes.c_str()
+                   );
+        return nullptr;
     }
-}
+};
+
 
 int WebServer::start() {
     /* Init oatpp Environment */
     oatpp::base::Environment::init();
-    /* Run App */
+
     auto *schedule = new Schedule;
     schedule->start();
 
-    /* Create Router for HTTP requests routing */
-    // auto router = oatpp::web::server::HttpRouter::createShared();
-
-    WebComponent webComponent(this->config->port);
+    WebRequestInterceptor requestInterceptor;
+    WebComponent webComponent(this->config->port, &requestInterceptor);
     webComponent.staticFilesManager.getObject()->set_cache_status(false);
     auto connectionProvider = webComponent.serverConnectionProvider;//.getObject();
+    // auto connectionHandler = webComponent.serverConnectionHandler.getObject();
 
+    /* Get router component */
+//    OATPP_COMPONENT(std::shared_ptr<oatpp::web::server::HttpRouter>, router);
     auto router = webComponent.httpRouter.getObject();
-
-    //router->route("GET", "/about", std::make_shared<AboutHandler>());
 
     auto hlsController = HlsController::createShared();
     hlsController->setServerConnectionProvider(connectionProvider);
@@ -89,50 +98,39 @@ int WebServer::start() {
     router->addController(MediaController::createShared());
     router->addController(hlsController);
 
-    /* Create HTTP connection handler with router */
-    //auto connectionHandler = oatpp::web::server::HttpConnectionHandler::createShared(router);
-
-    /* Create TCP connection provider */
-    //auto connectionProvider = oatpp::network::tcp::server::ConnectionProvider::createShared({"0.0.0.0", port, oatpp::network::Address::IP_4});
+    router->route("GET", "/about", std::make_shared<AboutHandler>());
 
     /* Create server which takes provided TCP connections and passes them to HTTP connection handler */
-    //oatpp::network::Server server(connectionProvider, connectionHandler);
-
     oatpp::network::Server server(webComponent.serverConnectionProvider,
                                   webComponent.serverConnectionHandler.getObject());
 
-    /* Print info about server port */
     OATPP_LOGI("MediaServer", "Server running on port %s", connectionProvider->getProperty("port").getData());
 
-    /* Run server */
     server.run();
-
-    /* Destroy oatpp Environment */
     oatpp::base::Environment::destroy();
     return 0;
 }
 
-int main(int argc, char* args[]) {
-//    auto str = "123456";
-//    printf("%s\n", Encrypt::md5(str).c_str());
+[[maybe_unused]] int WebServer::test_run() {
+    /* Create Router for HTTP requests routing */
+    auto router = oatpp::web::server::HttpRouter::createShared();
 
-    parse_configs();
+    router->route("GET", "/about", std::make_shared<AboutHandler>());
 
-    auto port = config["server"]["port"].as<int>();
-    auto hlsDest = config["hls"]["m3u"]["dest"].as<std::string>();
+    /* Create HTTP connection handler with router */
+    auto connectionHandler = oatpp::web::server::HttpConnectionHandler::createShared(router);
 
-    std::cout << "Port: " << port << std::endl;
+    /* Create TCP connection provider */
+    auto connectionProvider = oatpp::network::tcp::server::ConnectionProvider::createShared({"0.0.0.0", 8000, oatpp::network::Address::IP_4});
 
-    auto tcpServer = new net::TcpServer(port + 1);
-    tcpServer->start();
+    /* Create server which takes provided TCP connections and passes them to HTTP connection handler */
+    oatpp::network::Server server(connectionProvider, connectionHandler);
 
-    auto webConfig = new WebConfig {
-        .port = port,
-        .hlsDst = hlsDest.c_str(),
-    };
+    /* Print info about server port */
+    OATPP_LOGI("MyApp", "Server running on port %s", connectionProvider->getProperty("port").getData());
 
-    auto *webServer = new WebServer(webConfig);
-    webServer->start();
+    /* Run server */
+    server.run();
 
     return 0;
 }

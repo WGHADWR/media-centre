@@ -4,4 +4,4 @@ server:
 
 hls:
   m3u:
-    dest: D:/ts
+    dest: /home/smzhkj/workspace/hls/ts

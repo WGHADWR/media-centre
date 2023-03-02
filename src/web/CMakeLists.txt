@@ -12,8 +12,8 @@ add_definitions(
 
 add_executable(mediaServer
         ${UTILS_SOURCE_FILES}
-        ${SOURCE_DIR}
         ./hls/HlsController.cpp
+        ${SOURCE_DIR}
         )
 
 target_include_directories(mediaServer PUBLIC
@@ -21,13 +21,22 @@ target_include_directories(mediaServer PUBLIC
 )
 
 target_link_libraries(mediaServer
-        -Wl,-Bstatic
-        oatpp
-        -Wl,-Bstatic
+        ${oatpp_LIBRARIES}
         ${YAML_CPP_LIBRARIES}
-        -Wl,-Bdynamic
         ${EXT_LIBRARIES}
         )
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${PROJECT_ROOT_DIR}/src/static ${CMAKE_BINARY_DIR}
+)
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${PROJECT_ROOT_DIR}/src/web/media-server.yaml ${CMAKE_BINARY_DIR}
+)
 
 file(COPY media-server.yaml DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ../static DESTINATION ${CMAKE_BINARY_DIR})

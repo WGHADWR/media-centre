@@ -5,7 +5,7 @@
 #ifndef VIDEOPLAYER_HLSCONTROLLER_H
 #define VIDEOPLAYER_HLSCONTROLLER_H
 
-#define HLS_EXEC_PROGRAM "hlsMedia"
+#define HLS_EXEC_PROGRAM "hls"
 
 #include <string_view>
 
@@ -27,6 +27,8 @@
 
 using namespace std::string_view_literals;
 
+#include OATPP_CODEGEN_BEGIN(ApiController)
+
 class HlsController : public oatpp::web::server::api::ApiController {
 
 private:
@@ -45,9 +47,9 @@ private:
 public:
     typedef HlsController __ControllerType;
 
-    HlsController(const std::shared_ptr<ObjectMapper> &objectMapper) :
-        oatpp::web::server::api::ApiController(objectMapper) {
-    }
+    HlsController(OATPP_COMPONENT(std::shared_ptr<ObjectMapper>, objectMapper))
+            : oatpp::web::server::api::ApiController(objectMapper)
+    {}
 
     static std::shared_ptr<HlsController> createShared(OATPP_COMPONENT(std::shared_ptr<ObjectMapper>, objectMapper)){
         return std::shared_ptr<HlsController>(std::make_shared<HlsController>(objectMapper));
@@ -66,8 +68,6 @@ public:
     }
 
     std::string new_hls_command(std::string& source);
-
-#include OATPP_CODEGEN_BEGIN(ApiController)"oatpp/codegen/ApiController_define.hpp"
 
     ENDPOINT_ASYNC("GET", "/hls/list", HlsList) {
         ENDPOINT_ASYNC_INIT(HlsList)
@@ -97,8 +97,8 @@ public:
         }
     };
 
-#include OATPP_CODEGEN_END(ApiController)"oatpp/codegen/ApiController_undef.hpp"
 };
 
+#include OATPP_CODEGEN_END(ApiController)
 
 #endif //VIDEOPLAYER_HLSCONTROLLER_H

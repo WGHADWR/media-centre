@@ -4,17 +4,39 @@
 
 #include <iostream>
 #include <map>
+#include <unistd.h>
 #include "../util/encrypt.h"
 #include "../util/util.h"
 
 using namespace std;
+
+typedef struct TestA {
+    string name;
+};
+
+TestA* getA() {
+    TestA a = {.name="Tom"};
+    cout << &a << endl;
+    return &a;
+}
 
 int main() {
     MD5Digest md5Encode("123456");
     cout << md5Encode << endl;
     cout << md5("123456") << endl;
 
-    auto str = R"({ "serverPort": 9000, "url": "/hls/send" })";
+    auto a = getA();
+    cout << &a << endl;
+    cout << a->name << endl;
+
+    auto now = GET_TIME_NOW_MILLISEC;
+    cout << now << endl;
+
+    sleep(3);
+    now = GET_TIME_NOW_MILLISEC;
+    cout << now << endl;
+
+    auto str = R"({ \"serverPort\": 9000, \"url\": \"/hls/send\" })";
     auto data = parse(str);
 
     for (auto e : data.items()) {

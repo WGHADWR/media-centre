@@ -12,6 +12,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <unistd.h>
 
 #include "../util/util.h"
 #include <any>
@@ -20,7 +21,16 @@
 #include "../av_utils/av_utils.h"
 #include "../av_utils/video_context.h"
 
+#include "status_mgr.h"
+
 #define MAX_SEGMENTS 10
+
+typedef struct CmdArgs {
+    const std::string source;
+    const std::string dest;
+    std::map<std::string, std::any>* extraArgs;
+    bool standalone;
+};
 
 typedef struct M3uSegment {
     int32_t sequence;
@@ -43,26 +53,10 @@ typedef struct M3uPlaylist {
 inline const char* HLS_M3U_INDEX_FILE = "index.m3u8";
 inline const char* HLS_SEG_FILE_PREFIX = "seg_";
 
-static bool check_extend_args(const std::map<std::string, std::any> * j) {
-    if (!j) {
-        return false;
-    }
-
-    if (j->find("serverPort")  == j->end() || j->find("url")  == j->end()) {
-        return false;
-    }
-    try {
-        auto port =   j->at("serverPort");
-        // auto url = (*j)["url"].get<std::string>();
-        std::any_cast<int>(port);
-    } catch (std::exception& e) {
-        return false;
-    }
-    return true;
-}
-
 class HlsMuxer {
 public:
+    std::string streamId;
+
     int segment_duration = 10;
     M3uPlaylist *playlist = nullptr;
     bool exit = false;
@@ -71,21 +65,26 @@ public:
 
     uint32_t dst_video_stream_index = 0;
     uint32_t dst_audio_stream_index = 1;
+
+    static const uint32_t HEARTBEAT_INTERVAL = 10;
+    static const uint32_t HEARTBEAT_MAX_RETRY = 3;
+    uint32_t retry = 0;
+    StatusManager* statusManager;
 private:
+    const CmdArgs* cmdArgs;
     std::string outdir;
-    const std::map<std::string, std::any> *extends_args;
-
-    std::string streamId;
-
-
-    SwrContext *swrContext = nullptr;
 
     AVFormatContext* new_output_context(const char* url, const std::vector<AVStream*>& streams);
 
 public:
     HlsMuxer(const char*  url, const char*  outdir, const std::map<std::string, std::any> * ext_args);
 
+    HlsMuxer(const CmdArgs* args);
+
     int start();
+
+    // Start heart beat thread
+    void heart_beat();
 
     // decode frames and push to fifo
     int decode_audio_packet(AVPacket *pkt);
@@ -116,7 +115,7 @@ public:
 
     static std::string write_playlist_file_end();
 
-    void send_status(int action);
+    nlojson send_status(int action);
 
     void seg_clear();
 

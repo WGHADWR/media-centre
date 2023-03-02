@@ -23,7 +23,7 @@ private:
     static oatpp::String getExtension(const oatpp::String& filename);
 public:
 
-    StaticFilesManager(const oatpp::String& basePath)
+    explicit StaticFilesManager(const oatpp::String& basePath)
             : m_basePath(basePath)
     {}
 

@@ -6,12 +6,12 @@
 
 void start_tcp_server(net::TcpServer* server) {
     try {
-        std::cout << "Start tcp server on:" << server->port << std::endl;
+        sm_log("Start tcp server on: {}", server->port);
         asio::io_context io_context;
         net::Server s(io_context, (short)server->port);
         io_context.run();
     } catch (std::exception& e) {
-        std::cerr << "Exception: " << e.what() << "\n";
+        sm_error("Start tcp server failed. exception: {}", e.what());
     }
 }
 
