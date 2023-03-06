@@ -30,7 +30,7 @@ typedef struct CmdArgs {
     const std::string dest;
     std::map<std::string, std::any>* extraArgs;
     bool standalone;
-};
+} CmdArgs;
 
 typedef struct M3uSegment {
     int32_t sequence;

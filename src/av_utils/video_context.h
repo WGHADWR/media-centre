@@ -183,9 +183,9 @@ static int vc_swr_resample(SwrContext *swrContext, AVFrame *frame, AVFrame *dest
                                         dest->sample_rate, frame->sample_rate, AV_ROUND_UP);
 
     int resample_count = swr_convert(swrContext, dest->data, (int)dst_nb_samples, (const uint8_t **)(frame->extended_data), frame->nb_samples);
-    if (resample_count <= 0) {
+    /*if (resample_count <= 0) {
         return -1;
-    }
+    }*/
     return resample_count;
 }
 

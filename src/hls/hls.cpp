@@ -195,7 +195,10 @@ int get_begin_sequence(const std::vector<M3uSegment*>& segments, int max = 0) {
     if (max <= 0) {
         return segments[0] ? segments[0]->sequence : 0;
     }
-    int n = segments.size();
+    auto n = segments.size();
+    if (n == 0) {
+        return 0;
+    }
     if (n <= max) {
         return segments[0]->sequence;
     }
@@ -297,17 +300,15 @@ int HlsMuxer::decode_audio_packet(AVPacket *pkt) {
 
     ret = av_frame_get_buffer(dest, 0);
     if (ret != 0) {
+        sm_error("av_frame_get_buffer failed. ret: {}, {}", ret, av_errStr(ret));
         av_frame_free(&dest);
         av_frame_free(&frame);
-
-        sm_error("av_frame_get_buffer failed. ret: {}, {}", ret, av_errStr(ret));
         return ret;
     }
 
     while (true) {
         ret = avcodec_receive_frame(this->videoContext->inAudioCodecContext, frame);
         if (ret != 0) {
-            //av_frame_unref(frame);
             if (ret == AVERROR(EAGAIN)) { // || ret == AVERROR_EOF) {
                 //return 0;
             }
@@ -315,14 +316,27 @@ int HlsMuxer::decode_audio_packet(AVPacket *pkt) {
         }
 
         int resample_count = vc_swr_resample(this->videoContext->swr, frame, dest);
+        if (resample_count < 0) {
+            continue;
+        }
         if ((ret = av_audio_fifo_realloc(this->videoContext->fifo, av_audio_fifo_size(this->videoContext->fifo) + resample_count)) < 0) {
             sm_error("Could not reallocate FIFO");
             break;
         }
-        av_audio_fifo_write(this->videoContext->fifo, reinterpret_cast<void **>(dest->data), resample_count);
 
-        av_frame_unref(dest);
-        av_frame_unref(frame);
+        AVFrame *temp = av_frame_clone(dest);
+        if (temp == NULL) {
+            sm_error("av_frame_clone error");
+            break;
+        }
+        ret = av_audio_fifo_write(this->videoContext->fifo, reinterpret_cast<void **>(temp->data), resample_count);
+        if (ret < 0) {
+            sm_error("av_audio_fifo_write error, ret: {}", ret);
+        }
+        av_frame_free(&temp);
+        //FF_ARRAY_ELEMS(dest->buf);
+        //av_frame_unref(dest);
+        //av_frame_unref(frame);
     }
     av_frame_free(&dest);
     av_frame_free(&frame);
@@ -356,7 +370,11 @@ int HlsMuxer::write_encode_audio_packet() {
     frame->format = dstCodecContext->sample_fmt;
     frame->nb_samples = frame_size;
 
-    av_frame_get_buffer(frame, 0);
+    int ret = av_frame_get_buffer(frame, 0);
+    if (ret != 0) {
+        sm_error("write_encode_audio_packet av_frame_get_buffer error, ret: {}, {}", ret, av_errStr(ret));
+        return ret;
+    }
 
     int read_samples = av_audio_fifo_read(fifo, reinterpret_cast<void **>(frame->data), frame_size);
     if (read_samples < frame_size) {
@@ -370,7 +388,7 @@ int HlsMuxer::write_encode_audio_packet() {
     frame->duration = frame_size;
     this->videoContext->audioClk->setStart(pts);
 
-    int ret = avcodec_send_frame(dstCodecContext, frame);
+    ret = avcodec_send_frame(dstCodecContext, frame);
     if (ret != 0) {
         av_frame_free(&frame);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
