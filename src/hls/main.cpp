@@ -13,6 +13,7 @@ void define_options(cmdline::parser *parser) {
     parser->add<std::string>("dir", 'd', "target dir", false, ".");
     parser->add<std::string>("ext", 'e', "extends options, json", false, "{}");
     parser->add<bool>("standalone", 'a', "stand-alone", false, true);
+    parser->add<bool>("mute", 'm', "no audio", false, false);
 }
 
 std::map<std::string, std::any>* parse_extra_args(std::string& args) {
@@ -64,6 +65,7 @@ int main(int argv, char *args[]) {
     auto dir = parser.get<std::string>("dir");
     auto ext = parser.get<std::string>("ext");
     auto standalone = parser.get<bool>("standalone");
+    auto mute = parser.get<bool>("mute");
 
     if (url.length() == 0) {
         url = "rtsp://192.168.2.46:8554/test2";
@@ -88,7 +90,8 @@ int main(int argv, char *args[]) {
             .source = url,
             .dest = dir,
             .extraArgs = extraArgs,
-            .standalone = standalone
+            .standalone = standalone,
+            .mute = mute
     };
 
     StatusManager statusManager;

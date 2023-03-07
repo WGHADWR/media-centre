@@ -30,6 +30,7 @@ typedef struct CmdArgs {
     const std::string dest;
     std::map<std::string, std::any>* extraArgs;
     bool standalone;
+    bool mute;
 } CmdArgs;
 
 typedef struct M3uSegment {

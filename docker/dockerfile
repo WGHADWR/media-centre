@@ -1,0 +1,10 @@
+FROM centos:7.9.2009
+
+COPY ffmpeg-gpl-shared /opt/ffmpeg-gpl-shared
+COPY hls /opt/hls
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ffmpeg-gpl-shared/lib
+
+ENTRYPOINT /opt/hls $0 $@
+
+# docker run -d --name=hls hls:latest --source=rtsp:// -d /opt/ts -a 1
