@@ -13,7 +13,7 @@ add_executable(hls
         ${PROJECT_SOURCE_DIR}/../http/httpcli.h
 
         ${SOURCE_FILES}
-        status_mgr.cpp status_mgr.h)
+        )
 
 target_link_libraries(hls PUBLIC
         ${CURL_LIBRARIES}

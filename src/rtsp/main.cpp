@@ -9,7 +9,7 @@
 //#include "media-player.h"
 #include <cstdio>
 #include "rtsp_push.h"
-#undef main
+//#undef main
 
 static FILE *fp = nullptr;
 

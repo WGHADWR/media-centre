@@ -176,7 +176,7 @@ include_directories(SYSTEM
         )
 
 add_subdirectory(src/rtsp)
-#add_subdirectory(src/player)
+add_subdirectory(src/player)
 add_subdirectory(src/hls)
 add_subdirectory(src/web)
 

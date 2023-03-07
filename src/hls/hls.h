@@ -30,6 +30,7 @@ typedef struct CmdArgs {
     const std::string dest;
     std::map<std::string, std::any>* extraArgs;
     bool standalone;
+    bool mute;
 } CmdArgs;
 
 typedef struct M3uSegment {
@@ -50,6 +51,13 @@ typedef struct M3uPlaylist {
     FILE *file;
 } M3uPlaylist;
 
+typedef struct AudioSpec {
+    AVCodecID codec_id;
+    AVChannelLayout ch_layout;
+    AVSampleFormat sample_fmt;
+    int sample_rate;
+} AudioSpec;
+
 inline const char* HLS_M3U_INDEX_FILE = "index.m3u8";
 inline const char* HLS_SEG_FILE_PREFIX = "seg_";
 
@@ -62,6 +70,8 @@ public:
     bool exit = false;
 
     VideoContext *videoContext = nullptr;
+
+    AudioSpec *audioSpec = nullptr;
 
     uint32_t dst_video_stream_index = 0;
     uint32_t dst_audio_stream_index = 1;
@@ -77,8 +87,6 @@ private:
     AVFormatContext* new_output_context(const char* url, const std::vector<AVStream*>& streams);
 
 public:
-    HlsMuxer(const char*  url, const char*  outdir, const std::map<std::string, std::any> * ext_args);
-
     HlsMuxer(const CmdArgs* args);
 
     int start();

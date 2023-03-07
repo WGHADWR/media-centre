@@ -554,10 +554,10 @@ int MediaPlayer::createWindow() {
             if (event.window.event == SDL_WINDOWEVENT_EXPOSED) {
                 this->force_refresh = 1;
             }
-            sm_log("SDL event, %d\n", event.window.type);
+            sm_log("SDL event, {}", event.window.type);
         }
         if (event.type == SDL_KEYUP) {
-            sm_log("Press key: %d\n, space: %d", event.key.keysym.sym, event.key.keysym.sym == SDLK_SPACE);
+            sm_log("Press key: {}, space: {}", event.key.keysym.sym, event.key.keysym.sym == SDLK_SPACE);
 
             if (event.key.keysym.sym == SDLK_SPACE) {
                 //this->audioState->pause = this->audioState->pause == 0 ? 1 : 0;
