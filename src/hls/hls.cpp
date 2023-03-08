@@ -349,11 +349,11 @@ int HlsMuxer::decode_audio_packet(AVPacket *pkt) {
         ret = av_audio_fifo_write(this->videoContext->fifo, reinterpret_cast<void **>(temp->data), resample_count);
         if (ret < 0) {
             sm_error("av_audio_fifo_write error, ret: {}", ret);
-            av_frame_free(&temp);
         }
+        av_frame_free(&temp);
         //FF_ARRAY_ELEMS(dest->buf);
-        //av_frame_unref(dest);
-        //av_frame_unref(frame);
+        av_frame_unref(dest);
+        av_frame_unref(frame);
     }
     av_frame_free(&dest);
     av_frame_free(&frame);
@@ -421,6 +421,7 @@ int HlsMuxer::write_encode_audio_packet() {
     while(true) {
         ret = avcodec_receive_packet(dstCodecContext, pkt);
         if (ret != 0) {
+            av_packet_unref(pkt);
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 // printf("avcodec_receive_packet AVERROR_EOF. ret: %d\n", ret);
             } else {
@@ -434,6 +435,7 @@ int HlsMuxer::write_encode_audio_packet() {
             sm_error("Write audio packet failed; av_interleaved_write_frame failed, ret: {}, {}", ret, av_errStr(ret));
             // break;
         }
+        av_packet_unref(pkt);
     }
     av_frame_free(&frame);
     av_packet_free(&pkt);
